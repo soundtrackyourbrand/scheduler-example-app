@@ -1,0 +1,7 @@
+.topNavLink {
+  @apply text-sm hover:bg-white hover:bg-opacity-10 rounded px-2 py-1.5;
+}
+
+.topNavLinkActive {
+  @apply bg-white bg-opacity-15;
+}

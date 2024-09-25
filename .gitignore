@@ -1,0 +1,7 @@
+.cache
+.vscode
+node_modules
+build
+build-server
+.env
+db.sqlite

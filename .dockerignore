@@ -1,0 +1,12 @@
+.cache
+build
+build-server
+node_modules
+.dockerignore
+.env
+.env.sample
+.gitignore
+*.sqlite
+*.Dockerfile
+README.md
+deploy

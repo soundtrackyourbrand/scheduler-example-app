@@ -1,0 +1,8 @@
+# Ignore artifacts:
+build
+public/build
+build-server
+coverage
+deploy
+pnpm-lock.yaml
+.docker

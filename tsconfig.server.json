@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.base.json",
+  "include": ["./server.ts", "./lib/**/*.ts", "./api/**/*.ts"],
+  "exclude": ["node_modules"],
+  "compilerOptions": {
+    "lib": [],
+    "types": [],
+    "outDir": "./build-server",
+    "paths": {},
+
+    // There is no Vite here
+    "noEmit": false
+  }
+}

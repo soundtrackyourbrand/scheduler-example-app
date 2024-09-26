@@ -1,6 +1,6 @@
 import React from "react";
 import { ColumnDef } from "@tanstack/react-table";
-import { RuleAction, Run } from "~/types";
+import { EventAction, Run } from "~/types";
 import DateTime from "../DateTime";
 import { Link } from "@remix-run/react";
 
@@ -39,35 +39,35 @@ export const columns: ColumnDef<RunRow>[] = [
   },
 ];
 
-export function Actions({ actions }: { actions: RuleAction[] }) {
+export function Actions({ actions }: { actions: EventAction[] }) {
   const actionMap = actions.reduce(
     (acc, action) => {
-      if (!acc[action.ruleId]) {
-        acc[action.ruleId] = [] as RuleAction[];
+      if (!acc[action.eventId]) {
+        acc[action.eventId] = [] as EventAction[];
       }
-      acc[action.ruleId].push(action);
+      acc[action.eventId].push(action);
       return acc;
     },
-    {} as { [keyof: number]: RuleAction[] },
+    {} as { [keyof: number]: EventAction[] },
   );
 
-  const ruleIds = Object.keys(actionMap).map(parseInt);
+  const eventIds = Object.keys(actionMap).map(parseInt);
 
   return (
     <>
-      {ruleIds.map((ruleId) => {
-        if (isNaN(ruleId)) return;
-        const ruleActions = actionMap[ruleId];
+      {eventIds.map((eventId) => {
+        if (isNaN(eventId)) return;
+        const eventActions = actionMap[eventId];
         return (
-          <div key={ruleId} className="flex items-center">
+          <div key={eventId} className="flex items-center">
             <p>
-              {ruleActions.length} action{ruleActions.length === 1 ? "" : "s"}
+              {eventActions.length} action{eventActions.length === 1 ? "" : "s"}
             </p>
             <Link
-              to={"/rules/" + ruleId}
+              to={"/events/" + eventId}
               className="font-medium hover:underline ml-2"
             >
-              Go to rule
+              Go to event
             </Link>
           </div>
         );

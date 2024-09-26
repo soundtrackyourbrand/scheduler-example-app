@@ -11,8 +11,8 @@ const _sequelize = new Sequelize({
 export type RepeatPart = "day" | "hour" | "minute";
 export const repeatParts: RepeatPart[] = ["day", "hour", "minute"];
 
-// A Rule represents an action that should happen at some time in the future
-export const Rule = _sequelize.define("Rule", {
+// An Event represents a point in time when something will happen
+export const Event = _sequelize.define("Event", {
   name: DataTypes.STRING,
   description: {
     type: DataTypes.TEXT,
@@ -63,7 +63,7 @@ export function getNextRun(
   return nextRun;
 }
 
-// A Run represents every time we check if there are rules
+// A Run represents every time we check if there are events
 // that we need to take an action on.
 export const Run = _sequelize.define("Run", {});
 
@@ -80,8 +80,8 @@ export const Action = _sequelize.define("Action", {
   },
 });
 
-export const ZoneRule = _sequelize.define(
-  "ZoneRule",
+export const ZoneEvent = _sequelize.define(
+  "ZoneEvent",
   {
     zoneId: DataTypes.STRING,
     accountId: DataTypes.STRING,
@@ -94,7 +94,7 @@ export const ZoneRule = _sequelize.define(
     indexes: [
       {
         unique: true,
-        fields: ["RuleId", "zoneId"],
+        fields: ["EventId", "zoneId"],
       },
     ],
   },
@@ -103,25 +103,25 @@ export const ZoneRule = _sequelize.define(
 // Relations
 // =========
 
-// Rule has many zones
-Rule.hasMany(ZoneRule, { onDelete: "CASCADE", as: "zones" });
-ZoneRule.belongsTo(Rule);
+// Event has many zones
+Event.hasMany(ZoneEvent, { onDelete: "CASCADE", as: "zones" });
+ZoneEvent.belongsTo(Event);
 
-// Rule has many runs and a run can affect many rules
-Rule.belongsToMany(Run, { through: "RunRules" });
-Run.belongsToMany(Rule, { through: "RunRules" });
+// Event has many runs and a run can affect many events
+Event.belongsToMany(Run, { through: "RunEvents" });
+Run.belongsToMany(Event, { through: "RunEvents" });
 
 // Run has many actions
 Run.hasMany(Action, { onDelete: "CASCADE", as: "actions" });
 Action.belongsTo(Run);
 
-// Rule also has many actions
-Rule.hasMany(Action, { as: "actions" });
-Action.belongsTo(Rule);
+// Event also has many actions
+Event.hasMany(Action, { as: "actions" });
+Action.belongsTo(Event);
 
 export async function sync(options: SyncOptions) {
-  await Rule.sync(options);
-  await ZoneRule.sync(options);
+  await Event.sync(options);
+  await ZoneEvent.sync(options);
   await Run.sync(options);
   await Action.sync(options);
 }

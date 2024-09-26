@@ -1,7 +1,7 @@
 import React from "react";
 import { useState } from "react";
 import DatePicker from "~/components/DatePicker";
-import { RepeatPart, Rule } from "~/types";
+import { RepeatPart, Event } from "~/types";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
@@ -12,7 +12,7 @@ import RepeatPartSelect from "../RepeatPartSelect";
 import FormControl from "./FormControl";
 import { ExternalLink, soundtrackUrl } from "../ExternalLinks";
 
-export type RuleData = {
+export type EventData = {
   name: string;
   description: string;
   at: Date | undefined;
@@ -21,16 +21,16 @@ export type RuleData = {
   repeatPart: RepeatPart | null;
 };
 
-type RuleCreateProps = {
-  initialRule?: Rule;
-  initialData?: RuleData;
-  onSubmit: (data: RuleData) => Promise<unknown>;
+type EventCreateProps = {
+  initialEvent?: Event;
+  initialData?: EventData;
+  onSubmit: (data: EventData) => Promise<unknown>;
   onCancel?: () => void;
   error?: unknown;
   action: string;
 };
 
-const defaultRuleData: RuleData = {
+const defaultEventData: EventData = {
   name: "",
   description: "",
   at: new Date(),
@@ -39,26 +39,26 @@ const defaultRuleData: RuleData = {
   repeatPart: null,
 };
 
-function getInitialRuleData(
-  rule: Rule | undefined,
-  ruleData: RuleData | undefined,
-): RuleData {
-  if (ruleData) return ruleData;
-  if (rule)
+function getInitialEventData(
+  event: Event | undefined,
+  eventData: EventData | undefined,
+): EventData {
+  if (eventData) return eventData;
+  if (event)
     return {
-      name: rule.name,
-      description: rule.description ?? "",
-      at: rule.at ?? undefined,
-      assign: rule.assign,
-      repeat: rule.repeat,
-      repeatPart: rule.repeatPart,
+      name: event.name,
+      description: event.description ?? "",
+      at: event.at ?? undefined,
+      assign: event.assign,
+      repeat: event.repeat,
+      repeatPart: event.repeatPart,
     };
-  return defaultRuleData;
+  return defaultEventData;
 }
 
-export default function RuleCreate(props: RuleCreateProps) {
-  const [data, setData] = useState<RuleData>(
-    getInitialRuleData(props.initialRule, props.initialData),
+export default function EventCreate(props: EventCreateProps) {
+  const [data, setData] = useState<EventData>(
+    getInitialEventData(props.initialEvent, props.initialData),
   );
   const [loading, setLoading] = useState<boolean>(false);
   return (

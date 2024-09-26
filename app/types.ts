@@ -1,4 +1,4 @@
-export type ZoneRule = {
+export type ZoneEvent = {
   id: number;
   zoneId: string;
   accountId: string;
@@ -7,7 +7,7 @@ export type ZoneRule = {
 export type Run = {
   id: number;
   createdAt: Date;
-  actions: RuleAction[];
+  actions: EventAction[];
 };
 
 export type RepeatPart = "day" | "hour" | "minute";
@@ -25,7 +25,7 @@ export function toRepeatPart(
   return found ?? null;
 }
 
-export type Rule = {
+export type Event = {
   id: number;
   name: string;
   description: string | null;
@@ -35,14 +35,14 @@ export type Rule = {
   repeatPart: RepeatPart | null;
   disabledAt: Date | null;
   assign: string | null;
-  zones: ZoneRule[];
+  zones: ZoneEvent[];
 
   createdAt: Date;
   updatedAt: Date;
 };
 
-export type RuleAction = {
-  ruleId: number;
+export type EventAction = {
+  eventId: number;
   runId: number;
   accountId: string;
   zoneId: string;

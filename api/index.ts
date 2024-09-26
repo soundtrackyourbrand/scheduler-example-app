@@ -9,9 +9,9 @@ import {
   getNextRun,
   RepeatPart,
   repeatParts,
-  Rule,
+  Event,
   Run,
-  ZoneRule,
+  ZoneEvent,
 } from "../lib/db/index.js";
 import { Model } from "sequelize";
 
@@ -22,14 +22,14 @@ const jsonParser = bodyParser.json();
 const router = Router();
 router.use(jsonParser);
 
-router.get("/rules", async (req, res) => {
-  const rules = await Rule.findAll({
-    include: [{ model: ZoneRule, as: "zones" }],
+router.get("/events", async (req, res) => {
+  const events = await Event.findAll({
+    include: [{ model: ZoneEvent, as: "zones" }],
   });
-  res.json(rules);
+  res.json(events);
 });
 
-router.post("/rules", async (req, res) => {
+router.post("/events", async (req, res) => {
   if (!req.body.name) {
     res.status(400).json({ message: "Missing `name`" });
     return;
@@ -71,7 +71,7 @@ router.post("/rules", async (req, res) => {
     repeat = req.body.repeat;
   }
 
-  const r = await Rule.create({
+  const event = await Event.create({
     name: req.body.name,
     description: req.body.description || null,
     at,
@@ -80,63 +80,67 @@ router.post("/rules", async (req, res) => {
     repeatPart,
     assign: req.body.assign || null,
   });
-  res.json(r);
+  res.json(event);
 });
 
-router.delete("/rules/:ruleId", async (req, res) => {
-  await Rule.destroy({
+router.delete("/events/:eventId", async (req, res) => {
+  await Event.destroy({
     where: {
-      id: req.params.ruleId,
+      id: req.params.eventId,
     },
   });
   res.sendStatus(200);
 });
 
-router.post("/rules/:ruleId/copy", async (req, res) => {
-  const r = await Rule.findByPk(parseInt(req.params.ruleId), {
-    include: [{ model: ZoneRule, as: "zones" }],
+router.post("/events/:eventId/copy", async (req, res) => {
+  const event = await Event.findByPk(parseInt(req.params.eventId), {
+    include: [{ model: ZoneEvent, as: "zones" }],
   });
-  if (!r) {
+  if (!event) {
     res.sendStatus(404);
     return;
   }
 
-  logger.info("Making a copy of rule " + r.get("id"));
+  logger.info("Making a copy of event " + event.get("id"));
 
-  const copy = await Rule.create({
-    name: "Copy of " + r.get("name"),
-    description: r.get("description"),
-    at: r.get("at"),
-    nextRun: r.get("nextRun"),
-    repeat: r.get("repeat"),
-    repeatPart: r.get("repeatPart"),
-    assign: r.get("assign"),
-    disabledAt: r.get("disabledAt"),
+  const copy = await Event.create({
+    name: "Copy of " + event.get("name"),
+    description: event.get("description"),
+    at: event.get("at"),
+    nextRun: event.get("nextRun"),
+    repeat: event.get("repeat"),
+    repeatPart: event.get("repeatPart"),
+    assign: event.get("assign"),
+    disabledAt: event.get("disabledAt"),
   });
 
-  logger.info("Created rule " + copy.get("id"));
+  logger.info("Created event " + copy.get("id"));
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const zoneRuleData = (r.get("zones") as Model<any, any>[]).map((zoneRule) => {
-    return {
-      RuleId: copy.get("id"),
-      zoneId: zoneRule.get("zoneId"),
-      accountId: zoneRule.get("accountId"),
-      disabledAt: zoneRule.get("disabledAt"),
-    };
-  });
+  const zoneEventData = (event.get("zones") as Model<any, any>[]).map(
+    (zoneEvent) => {
+      return {
+        EventId: copy.get("id"),
+        zoneId: zoneEvent.get("zoneId"),
+        accountId: zoneEvent.get("accountId"),
+        disabledAt: zoneEvent.get("disabledAt"),
+      };
+    },
+  );
 
-  if (zoneRuleData.length > 0) {
-    logger.info(`Adding ${zoneRuleData.length} ZoneRules to ${copy.get("id")}`);
-    await ZoneRule.bulkCreate(zoneRuleData);
+  if (zoneEventData.length > 0) {
+    logger.info(
+      `Adding ${zoneEventData.length} Zoneevents to ${copy.get("id")}`,
+    );
+    await ZoneEvent.bulkCreate(zoneEventData);
   }
 
   res.send(copy);
 });
 
-router.put("/rules/:ruleId", async (req, res) => {
-  const r = await Rule.findByPk(parseInt(req.params.ruleId));
-  if (!r) {
+router.put("/events/:eventId", async (req, res) => {
+  const event = await Event.findByPk(parseInt(req.params.eventId));
+  if (!event) {
     res.sendStatus(404);
     return;
   }
@@ -144,13 +148,13 @@ router.put("/rules/:ruleId", async (req, res) => {
     res.status(400).json({ message: "`name` cannot be empty" });
     return;
   } else if (req.body.name) {
-    r.set("name", req.body.name.toString());
+    event.set("name", req.body.name.toString());
   }
 
   if (req.body.description) {
-    r.set("description", req.body.description);
+    event.set("description", req.body.description);
   } else if (req.body.description === null) {
-    r.set("description", null);
+    event.set("description", null);
   }
 
   if (req.body.repeat) {
@@ -169,11 +173,11 @@ router.put("/rules/:ruleId", async (req, res) => {
       });
       return;
     }
-    r.set("repeat", req.body.repeat);
-    r.set("repeatPart", req.body.repeatPart);
+    event.set("repeat", req.body.repeat);
+    event.set("repeatPart", req.body.repeatPart);
   } else if (req.body.repeat === null) {
-    r.set("repeat", null);
-    r.set("repeatPart", null);
+    event.set("repeat", null);
+    event.set("repeatPart", null);
   }
 
   if (req.body.at) {
@@ -186,21 +190,21 @@ router.put("/rules/:ruleId", async (req, res) => {
     const now = new Date();
     const nextRun = getNextRun(
       at,
-      r.get("repeat") as number | null,
-      r.get("repeatPart") as RepeatPart | null,
+      event.get("repeat") as number | null,
+      event.get("repeatPart") as RepeatPart | null,
       now,
     );
-    r.set("at", at);
-    r.set("nextRun", nextRun);
+    event.set("at", at);
+    event.set("nextRun", nextRun);
   } else if (req.body.at === null) {
-    r.set("at", null);
-    r.set("nextRun", null);
+    event.set("at", null);
+    event.set("nextRun", null);
   }
 
   if (req.body.assign) {
-    r.set("assign", req.body.assign);
+    event.set("assign", req.body.assign);
   } else if (req.body.assign === null) {
-    r.set("assign", null);
+    event.set("assign", null);
   }
 
   if (req.body.disabledAt) {
@@ -209,29 +213,29 @@ router.put("/rules/:ruleId", async (req, res) => {
       res.status(400).json({ message: "Failed to parse `disabledAt`" });
       return;
     }
-    r.set("disabledAt", new Date(timestamp));
+    event.set("disabledAt", new Date(timestamp));
   } else if (req.body.disabledAt === null) {
-    r.set("disabledAt", null);
+    event.set("disabledAt", null);
   }
 
-  if (!r.changed()) {
+  if (!event.changed()) {
     logger.info("Nothing changed");
-    res.json(r);
+    res.json(event);
     return;
   }
-  const saved = await r.save();
+  const saved = await event.save();
   res.json(saved);
 });
 
-router.get("/rules/:ruleId/zones", async (req, res) => {
-  const ruleId = parseInt(req.params.ruleId);
-  const r = await Rule.findByPk(ruleId);
+router.get("/events/:eventId/zones", async (req, res) => {
+  const eventId = parseInt(req.params.eventId);
+  const r = await Event.findByPk(eventId);
   if (!r) {
     res.sendStatus(404);
     return;
   }
 
-  const zones = await ZoneRule.findAll({ where: { RuleId: ruleId } });
+  const zones = await ZoneEvent.findAll({ where: { EventId: eventId } });
   res.json(zones);
 });
 
@@ -245,13 +249,13 @@ router.get("/runs", async (req, res) => {
 });
 
 /**
- * Adds zones to this rule
+ * Adds zones to this event
  *
  * `req.body` must look like { "add": [{"zoneId": "...", "accountId": "..." }], "activate": [], "deactivate": [], "remove": [] }
  */
-router.post("/rules/:ruleId/zones", async (req, res) => {
-  const ruleId = parseInt(req.params.ruleId);
-  const r = await Rule.findByPk(ruleId);
+router.post("/events/:eventId/zones", async (req, res) => {
+  const eventId = parseInt(req.params.eventId);
+  const r = await Event.findByPk(eventId);
   if (!r) {
     res.sendStatus(404);
     return;
@@ -261,67 +265,67 @@ router.post("/rules/:ruleId/zones", async (req, res) => {
     const arr = req.body.remove as { zoneId: string }[];
     const ids = arr.map((item) => item.zoneId);
     logger.info("Removing", ids);
-    const rows = await ZoneRule.destroy({
+    const rows = await ZoneEvent.destroy({
       where: {
-        RuleId: ruleId,
+        EventId: eventId,
         zoneId: ids,
       },
     });
-    logger.info("Removed " + rows + " rows for rule " + ruleId);
+    logger.info("Removed " + rows + " rows for event " + eventId);
   }
 
   if (Array.isArray(req.body.activate)) {
     const arr = req.body.activate as { zoneId: string }[];
     const ids = arr.map((item) => item.zoneId);
-    const [rows] = await ZoneRule.update(
+    const [rows] = await ZoneEvent.update(
       { disabledAt: null },
       {
         where: {
-          RuleId: ruleId,
+          EventId: eventId,
           zoneId: ids,
         },
       },
     );
-    logger.info("Activated " + rows + " rows for rule " + ruleId);
+    logger.info("Activated " + rows + " rows for event " + eventId);
   }
 
   if (Array.isArray(req.body.deactivate)) {
     const arr = req.body.deactivate as { zoneId: string }[];
     const ids = arr.map((item) => item.zoneId);
-    const [rows] = await ZoneRule.update(
+    const [rows] = await ZoneEvent.update(
       { disabledAt: new Date() },
       {
         where: {
-          RuleId: ruleId,
+          EventId: eventId,
           zoneId: ids,
         },
       },
     );
-    logger.info("Deactivated " + rows + " rows for rule " + ruleId);
+    logger.info("Deactivated " + rows + " rows for event " + eventId);
   }
 
   if (Array.isArray(req.body.add)) {
     const arr = req.body.add as { zoneId: string; accountId: string }[];
     for (const item of arr) {
       try {
-        await ZoneRule.create({ ...item, RuleId: ruleId });
+        await ZoneEvent.create({ ...item, EventId: eventId });
       } catch (e) {
         res.status(500).json({
-          message: "Failed to create rule: " + inspect(item) + ", error: " + e,
+          message: "Failed to create event: " + inspect(item) + ", error: " + e,
         });
         return;
       }
     }
-    logger.info("Added " + arr.length + " rows for rule " + ruleId);
+    logger.info("Added " + arr.length + " rows for event " + eventId);
   }
 
-  const zoneRules = await ZoneRule.findAll({ where: { RuleId: ruleId } });
-  res.json(zoneRules);
+  const zoneEvents = await ZoneEvent.findAll({ where: { EventId: eventId } });
+  res.json(zoneEvents);
 });
 
-router.get("/rules/:ruleId", async (req, res) => {
-  const r = await Rule.findByPk(parseInt(req.params.ruleId), {
-    include: [{ model: ZoneRule, as: "zones" }],
+router.get("/events/:eventId", async (req, res) => {
+  const r = await Event.findByPk(parseInt(req.params.eventId), {
+    include: [{ model: ZoneEvent, as: "zones" }],
   });
   if (!r) {
     res.sendStatus(404);
@@ -330,8 +334,8 @@ router.get("/rules/:ruleId", async (req, res) => {
   res.json(r);
 });
 
-router.get("/rules/:ruleId/actions", async (req, res) => {
-  const r = await Rule.findByPk(parseInt(req.params.ruleId), {
+router.get("/events/:eventId/actions", async (req, res) => {
+  const r = await Event.findByPk(parseInt(req.params.eventId), {
     include: [{ model: Action, as: "actions" }],
   });
   if (!r) {
@@ -363,19 +367,19 @@ router.get("/accounts/:accountId/zones", async (req, res) => {
   res.json(zones);
 });
 
-router.get("/accounts/:accountId/rules", async (req, res) => {
-  const zones = await ZoneRule.findAll({
+router.get("/accounts/:accountId/events", async (req, res) => {
+  const zones = await ZoneEvent.findAll({
     where: { accountId: req.params.accountId },
   });
-  const ruleIds = new Set<number>();
+  const eventIds = new Set<number>();
   for (const zone of zones) {
-    ruleIds.add(zone.get("RuleId") as number);
+    eventIds.add(zone.get("eventId") as number);
   }
-  const rules = await Rule.findAll({
-    where: { id: Array.from(ruleIds) },
-    include: [{ model: ZoneRule, as: "zones" }],
+  const events = await Event.findAll({
+    where: { id: Array.from(eventIds) },
+    include: [{ model: ZoneEvent, as: "zones" }],
   });
-  res.json(rules);
+  res.json(events);
 });
 
 router.get("/accounts/:accountId", async (req, res) => {

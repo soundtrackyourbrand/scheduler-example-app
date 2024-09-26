@@ -5,8 +5,8 @@ import {
   Account,
   AccountLibrary,
   Assignable,
-  Rule,
-  RuleAction,
+  Event,
+  EventAction,
   Run,
   toRepeatPart,
   Zone,
@@ -16,7 +16,7 @@ function dateOrNull(date: any): Date | null {
   return date ? new Date(date) : null;
 }
 
-export function toRule(data: any): any {
+export function toEvent(data: any): any {
   return {
     ...data,
     at: dateOrNull(data.at),
@@ -28,10 +28,10 @@ export function toRule(data: any): any {
   };
 }
 
-function toRuleAction(data: any): any {
+function toEventAction(data: any): any {
   return {
     ...data,
-    ruleId: data.RuleId,
+    eventId: data.EventId,
     runId: data.RunId,
     createdAt: dateOrNull(data.createdAt),
     updatedAt: dateOrNull(data.updatedAt),
@@ -42,7 +42,7 @@ function toRun(data: any): any {
   return {
     ...data,
     createdAt: dateOrNull(data.createdAt),
-    actions: data.actions.map(toRuleAction),
+    actions: data.actions.map(toEventAction),
   };
 }
 
@@ -63,14 +63,14 @@ function toLibrary(data: any): any {
 
 const defaultFetcher = (url: string) => fetch(url).then((res) => res.json());
 
-export const ruleFetcher: Fetcher<Rule, string> = (url) =>
-  defaultFetcher(url).then(toRule);
-export const rulesFetcher: Fetcher<Rule[], string> = (url) =>
-  defaultFetcher(url).then((rules) => rules.map(toRule));
+export const eventFetcher: Fetcher<Event, string> = (url) =>
+  defaultFetcher(url).then(toEvent);
+export const eventsFetcher: Fetcher<Event[], string> = (url) =>
+  defaultFetcher(url).then((events) => events.map(toEvent));
 export const runsFetcher: Fetcher<Run[], string> = (url) =>
-  defaultFetcher(url).then((rules) => rules.map(toRun));
-export const actionsFetcher: Fetcher<RuleAction[], string> = (url) =>
-  defaultFetcher(url).then((actions) => actions.map(toRuleAction));
+  defaultFetcher(url).then((runs) => runs.map(toRun));
+export const actionsFetcher: Fetcher<EventAction[], string> = (url) =>
+  defaultFetcher(url).then((actions) => actions.map(toEventAction));
 
 export const accountsFetcher: Fetcher<Account[], string> = defaultFetcher;
 export const zonesFetcher: Fetcher<Zone[], string> = (url) =>

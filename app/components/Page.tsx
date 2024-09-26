@@ -23,7 +23,7 @@ export default function Page(props: PageProps & PropsWithChildren) {
             <span className="text-sm">Soundtrack Scheduler</span>
           </div>
           <div className="space-x-1">
-            <TopNavLink to="/rules">Events</TopNavLink>
+            <TopNavLink to="/events">Events</TopNavLink>
             <TopNavLink to="/settings">Settings</TopNavLink>
             <TopNavLink to="/logs">Logs</TopNavLink>
           </div>

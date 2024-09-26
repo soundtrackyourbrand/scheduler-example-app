@@ -5,9 +5,9 @@ import {
   Action,
   getNextRun,
   RepeatPart,
-  Rule,
+  Event,
   Run,
-  ZoneRule,
+  ZoneEvent,
 } from "../db/index.js";
 import { Api } from "../soundtrack-api/index.js";
 
@@ -20,23 +20,23 @@ type WorkerOptions = {
 const api = new Api();
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function executeRule(runId: number, rule: Model<any, any>) {
-  const ruleId = rule.get("id");
-  if (!ruleId || typeof ruleId !== "number") {
-    logger.info(`No rule id, skipping rule ${ruleId}`);
+async function executeEvent(runId: number, event: Model<any, any>) {
+  const eventId = event.get("id");
+  if (!eventId || typeof eventId !== "number") {
+    logger.info(`No event id, skipping event ${eventId}`);
     return;
   }
-  const playFromId = rule.get("assign");
+  const playFromId = event.get("assign");
   if (!playFromId || typeof playFromId !== "string") {
-    logger.info(`Nothing to assign, skipping rule ${ruleId}`);
+    logger.info(`Nothing to assign, skipping event ${eventId}`);
     return;
   }
 
-  logger.info(`Executing rule ${ruleId}`);
+  logger.info(`Executing event ${eventId}`);
 
-  const zones = await ZoneRule.findAll({
+  const zones = await ZoneEvent.findAll({
     where: {
-      RuleId: rule.get("id"),
+      EventId: event.get("id"),
       disabledAt: null,
     },
   });
@@ -64,7 +64,7 @@ async function executeRule(runId: number, rule: Model<any, any>) {
     }
 
     await Action.create({
-      RuleId: ruleId,
+      EventId: eventId,
       RunId: runId,
       zoneId: zone.get("zoneId"),
       accountId: zone.get("accountId"),
@@ -83,7 +83,7 @@ async function run() {
 
   logger.info(`Created run ${runId}`);
 
-  const rules = await Rule.findAll({
+  const events = await Event.findAll({
     where: {
       nextRun: {
         [Op.lt]: new Date(),
@@ -92,31 +92,31 @@ async function run() {
     },
   });
 
-  if (rules.length === 0) {
-    logger.info("No rules need action");
+  if (events.length === 0) {
+    logger.info("No events need action");
     return;
   }
 
-  for (const rule of rules) {
-    const ruleId = rule.get("id");
-    await executeRule(runId, rule);
+  for (const event of events) {
+    const eventId = event.get("id");
+    await executeEvent(runId, event);
 
-    const repeat = rule.get("repeat") as number | null;
-    const repeatPart = rule.get("repeatPart") as RepeatPart | null;
-    logger.info(`Rule is set to repeat every ${repeat} ${repeatPart}`);
+    const repeat = event.get("repeat") as number | null;
+    const repeatPart = event.get("repeatPart") as RepeatPart | null;
+    logger.info(`Event is set to repeat every ${repeat} ${repeatPart}`);
 
     if (repeat && repeatPart) {
-      const currentRun = rule.get("at") as Date | null;
+      const currentRun = event.get("at") as Date | null;
       const nextRun = getNextRun(currentRun, repeat, repeatPart);
       if (nextRun) {
-        logger.info(`Setting nextRun for rule ${ruleId} to ${nextRun}`);
-        await rule.update({ nextRun });
+        logger.info(`Setting nextRun for event ${eventId} to ${nextRun}`);
+        await event.update({ nextRun });
       } else {
-        logger.error(`Failed to compute \`nextRun\` for rule ${ruleId}`);
+        logger.error(`Failed to compute \`nextRun\` for event ${eventId}`);
       }
     } else {
-      logger.info(`Unsetting nextRun for rule ${rule.get("id")}`);
-      await rule.update({ nextRun: null });
+      logger.info(`Unsetting nextRun for event ${event.get("id")}`);
+      await event.update({ nextRun: null });
     }
   }
 }

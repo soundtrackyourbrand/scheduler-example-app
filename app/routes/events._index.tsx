@@ -2,10 +2,10 @@ import React from "react";
 import { Link } from "@remix-run/react";
 import { PropsWithChildren, useCallback, useMemo, useState } from "react";
 import useSWR from "swr";
-import { accountsFetcher, rulesFetcher } from "../fetchers";
+import { accountsFetcher, eventsFetcher } from "../fetchers";
 import { Button } from "~/components/ui/button";
 import DateTime from "~/components/DateTime";
-import { Rule } from "~/types";
+import { Event } from "~/types";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -53,8 +53,8 @@ function filterIsEmpty(filter: Filter): boolean {
   );
 }
 
-export default function Rules() {
-  const { data: rules } = useSWR("/api/v1/rules", rulesFetcher);
+export default function Events() {
+  const { data: events } = useSWR("/api/v1/events", eventsFetcher);
   const { data: accounts } = useSWR("/api/v1/accounts", accountsFetcher);
   const [filter, setFilter] = useState<Filter>(emptyFilter);
 
@@ -77,24 +77,26 @@ export default function Rules() {
     [setFilter],
   );
 
-  const filteredRules = useMemo<Rule[]>(() => {
-    if (!rules) return [];
-    let _rules = rules.concat([]);
+  const filteredEvents = useMemo<Event[]>(() => {
+    if (!events) return [];
+    let _events = events.concat([]);
     if (filter.accounts.length > 0) {
-      _rules = _rules.filter(
-        (rule) =>
-          !!rule.zones.find((zone) => filter.accounts.includes(zone.accountId)),
+      _events = _events.filter(
+        (event) =>
+          !!event.zones.find((zone) =>
+            filter.accounts.includes(zone.accountId),
+          ),
       );
     }
     if (filter.deactivated !== "all") {
-      _rules = _rules.filter((rule) =>
+      _events = _events.filter((event) =>
         filter.deactivated === "deactivated"
-          ? rule.disabledAt !== null
-          : rule.disabledAt === null,
+          ? event.disabledAt !== null
+          : event.disabledAt === null,
       );
     }
-    return _rules;
-  }, [filter, rules]);
+    return _events;
+  }, [filter, events]);
 
   const selectedAccounts =
     accounts?.filter((account) => filter.accounts.includes(account.id)) ?? [];
@@ -160,24 +162,24 @@ export default function Rules() {
         </Button>
       )}
       <div className="mt-3">
-        {rules?.length === 0 && <EmptyMessage>No events</EmptyMessage>}
-        {(rules?.length ?? 0) > 0 && filteredRules.length === 0 && (
+        {events?.length === 0 && <EmptyMessage>No events</EmptyMessage>}
+        {(events?.length ?? 0) > 0 && filteredEvents.length === 0 && (
           <EmptyMessage>No events match your filter</EmptyMessage>
         )}
-        {filteredRules.map((rule) => {
+        {filteredEvents.map((event) => {
           return (
-            <div key={rule.id} className="mb-3">
+            <div key={event.id} className="mb-3">
               <div className="flex">
                 <div className="flex-grow">
-                  <Link to={"/rules/" + rule.id}>
+                  <Link to={"/events/" + event.id}>
                     <h3 className="inline font-medium hover:underline">
-                      {rule.name}
+                      {event.name}
                     </h3>
                   </Link>
                 </div>
                 <div>
-                  {rule.assign ? (
-                    <AssignableDisplayData id={rule.assign} size="md" link />
+                  {event.assign ? (
+                    <AssignableDisplayData id={event.assign} size="md" link />
                   ) : (
                     <p className="text-slate-400">No music</p>
                   )}
@@ -185,20 +187,21 @@ export default function Rules() {
               </div>
               <div className="flex">
                 <div className="flex-grow">
-                  <DateTime className="text-slate-500" dt={rule.nextRun} />
-                  {rule.repeat ? (
+                  <DateTime className="text-slate-500" dt={event.nextRun} />
+                  {event.repeat ? (
                     <>
                       , repeat{" "}
                       <RepeatDisplay
-                        repeat={rule.repeat}
-                        repeatPart={rule.repeatPart}
+                        repeat={event.repeat}
+                        repeatPart={event.repeatPart}
                       />
                     </>
                   ) : null}
                 </div>
                 <div>
                   <span className="text-slate-400">
-                    {rule.zones.length} zone{rule.zones.length === 1 ? "" : "s"}
+                    {event.zones.length} zone
+                    {event.zones.length === 1 ? "" : "s"}
                   </span>
                 </div>
               </div>
@@ -206,7 +209,7 @@ export default function Rules() {
           );
         })}
         <div className="border-t border-t-slate-100 text-slate-300 mt-4 text-align-center pt-2 text-sm">
-          {filteredRules.length} of {rules?.length} events
+          {filteredEvents.length} of {events?.length} events
         </div>
       </div>
     </Page>

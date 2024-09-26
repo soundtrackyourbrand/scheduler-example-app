@@ -1,8 +1,8 @@
 import React from "react";
 import { useNavigate } from "@remix-run/react";
 import useSWRMutation from "swr/mutation";
-import { Rule } from "../types";
-import RuleCreate, { RuleData } from "~/components/forms/RuleCreate";
+import { Event } from "../types";
+import EventForm, { EventData } from "~/components/forms/EventForm";
 import Paper from "~/components/Paper";
 import Page from "~/components/Page";
 import { toast } from "sonner";
@@ -13,10 +13,10 @@ export const meta: MetaFunction = () => {
   return [{ title: pageTitle("Events", "New") }];
 };
 
-async function createRule(
+async function createEvent(
   url: string,
-  { arg }: { arg: RuleData },
-): Promise<Rule> {
+  { arg }: { arg: EventData },
+): Promise<Event> {
   return await fetch(url, {
     method: "POST",
     headers: {
@@ -26,20 +26,20 @@ async function createRule(
   }).then((res) => res.json());
 }
 
-export default function NewRule() {
-  const { trigger } = useSWRMutation("/api/v1/rules", createRule);
+export default function NewEvent() {
+  const { trigger } = useSWRMutation("/api/v1/events", createEvent);
   const navigate = useNavigate();
 
-  const handleSubmit = async (data: RuleData) => {
+  const handleSubmit = async (data: EventData) => {
     const response = await trigger(data);
     toast("Created event #" + response.id + ": " + response.name);
-    navigate("/rules/" + response.id);
+    navigate("/events/" + response.id);
   };
 
   return (
-    <Page breadcrumbs={[{ label: "Events", to: "/rules" }, { label: "New" }]}>
+    <Page breadcrumbs={[{ label: "Events", to: "/events" }, { label: "New" }]}>
       <Paper>
-        <RuleCreate onSubmit={handleSubmit} action="Create event" />
+        <EventForm onSubmit={handleSubmit} action="Create event" />
       </Paper>
     </Page>
   );

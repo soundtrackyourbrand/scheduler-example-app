@@ -1,18 +1,18 @@
 import React from "react";
 import { ColumnDef } from "@tanstack/react-table";
-import { AccountZone, RuleAction } from "~/types";
+import { AccountZone, EventAction } from "~/types";
 import DateTime from "../DateTime";
 import { Badge } from "~/components/ui/badge";
 import { AssignableDisplayData } from "../AssignableDisplay";
 import ErrorText from "../ErrorText";
 import { AccountLink, ZoneLink } from "../ExternalLinks";
 
-export type RuleActionRow = {
-  action: RuleAction;
+export type EventActionRow = {
+  action: EventAction;
   zone: AccountZone | null;
 };
 
-export const columns: ColumnDef<RuleActionRow>[] = [
+export const columns: ColumnDef<EventActionRow>[] = [
   {
     id: "createdAt",
     header: "At",

@@ -5,14 +5,14 @@ import {
   accountsFetcher,
   actionsFetcher,
   errorHandler,
-  ruleFetcher,
-  toRule,
+  eventFetcher,
+  toEvent,
   zonesFetcher,
 } from "../fetchers";
 import { useNavigate, useParams } from "@remix-run/react";
 import useSWRMutation from "swr/mutation";
 import DateTime from "~/components/DateTime";
-import RuleCreate, { RuleData } from "~/components/forms/RuleCreate";
+import EventForm, { EventData } from "~/components/forms/EventForm";
 import { Button } from "~/components/ui/button";
 import Paper from "~/components/Paper";
 import {
@@ -20,7 +20,7 @@ import {
   AccountZone,
   AccountZoneMap,
   Zone,
-  Rule as _Rule,
+  Event as _Event,
 } from "~/types";
 import { DataTable } from "~/components/DataTable";
 import {
@@ -42,18 +42,18 @@ export const meta: MetaFunction = ({ params }) => {
   return [{ title: pageTitle("Events", "#" + params.id) }];
 };
 
-async function destroyRule(url: string): Promise<unknown> {
+async function destroyEvent(url: string): Promise<unknown> {
   return await fetch(url, { method: "DELETE" });
 }
 
-type RuleUpdate = {
+type EventUpdate = {
   name?: string;
   description?: string;
 };
 
-async function updateRule(
+async function updateEvent(
   url: string,
-  { arg }: { arg: RuleUpdate },
+  { arg }: { arg: EventUpdate },
 ): Promise<unknown> {
   return await fetch(url, {
     method: "PUT",
@@ -64,16 +64,16 @@ async function updateRule(
   }).then(errorHandler);
 }
 
-type RuleZonesUpdateItem = { zoneId: string; accountId: string };
+type EventZonesUpdateItem = { zoneId: string; accountId: string };
 
-type RuleZonesUpdate = {
-  add: RuleZonesUpdateItem[];
-  remove: RuleZonesUpdateItem[];
+type EventZonesUpdate = {
+  add: EventZonesUpdateItem[];
+  remove: EventZonesUpdateItem[];
 };
 
-async function updateRuleZones(
+async function updateEventZones(
   url: string,
-  { arg }: { arg: RuleZonesUpdate },
+  { arg }: { arg: EventZonesUpdate },
 ): Promise<unknown> {
   return await fetch(url, {
     method: "POST",
@@ -84,24 +84,24 @@ async function updateRuleZones(
   }).then(errorHandler);
 }
 
-async function copyRule(url: string): Promise<_Rule> {
+async function copyEvent(url: string): Promise<_Event> {
   return await fetch(url, {
     method: "POST",
   })
     .then(errorHandler)
     .then((res) => res.json())
-    .then(toRule);
+    .then(toEvent);
 }
 
-export default function Rule() {
+export default function Event() {
   const params = useParams<{ id: string }>();
-  const ruleKey = "/api/v1/rules/" + params.id;
+  const eventKey = "/api/v1/events/" + params.id;
 
   const [editing, setEditing] = useState<boolean>(false);
   const navigate = useNavigate();
   const { mutate } = useSWRConfig();
 
-  const { data: rule, error } = useSWR(ruleKey, ruleFetcher);
+  const { data: event, error } = useSWR(eventKey, eventFetcher);
   const { data: accounts, error: accountsError } = useSWR(
     "/api/v1/accounts",
     accountsFetcher,
@@ -112,19 +112,19 @@ export default function Rule() {
   );
 
   const { trigger: destroyTrigger, error: destroyError } = useSWRMutation(
-    "/api/v1/rules/" + params.id,
-    destroyRule,
+    eventKey,
+    destroyEvent,
   );
   const { trigger: updateTrigger, error: updateError } = useSWRMutation(
-    "/api/v1/rules/" + params.id,
-    updateRule,
+    eventKey,
+    updateEvent,
   );
   const { trigger: copyTrigger, error: copyError } = useSWRMutation(
-    "/api/v1/rules/" + params.id + "/copy",
-    copyRule,
+    eventKey + "/copy",
+    copyEvent,
   );
   const { trigger: updateZonesTrigger, error: updateZonesError } =
-    useSWRMutation("/api/v1/rules/" + params.id + "/zones", updateRuleZones);
+    useSWRMutation(eventKey + "/zones", updateEventZones);
 
   const zonesWithAccount = useMemo(() => {
     if (!zones || !accounts) return null;
@@ -153,14 +153,14 @@ export default function Rule() {
   }, [zonesWithAccount]);
 
   const activeZoneIds: string[] =
-    rule?.zones.map((zoneRule) => zoneRule.zoneId) ?? [];
+    event?.zones.map((zoneEvent) => zoneEvent.zoneId) ?? [];
 
   const handleDelete = async () => {
     await destroyTrigger();
-    navigate("/rules");
+    navigate("/events");
   };
 
-  const handleUpdate = async (data: RuleData) => {
+  const handleUpdate = async (data: EventData) => {
     await updateTrigger(data);
     toast("Event updated");
   };
@@ -168,10 +168,10 @@ export default function Rule() {
   const handleCopy = async () => {
     const copy = await copyTrigger();
     toast("Copied event #" + copy.id + ": " + copy.name);
-    navigate("/rules/" + copy.id);
+    navigate("/events/" + copy.id);
   };
 
-  const handleZoneAction = async (update: RuleZonesUpdate) => {
+  const handleZoneAction = async (update: EventZonesUpdate) => {
     await updateZonesTrigger(update);
     let message = "";
     if (update.add.length)
@@ -181,11 +181,11 @@ export default function Rule() {
     if (message) {
       toast(message);
     }
-    mutate(ruleKey);
+    mutate(eventKey);
   };
 
   const handleSingleZoneAction = async (action: ZoneRowAction, zone: Zone) => {
-    const update: RuleZonesUpdate = { add: [], remove: [] };
+    const update: EventZonesUpdate = { add: [], remove: [] };
     if (action === "add")
       update.add.push({ zoneId: zone.id, accountId: zone.account.id });
     if (action === "remove")
@@ -205,18 +205,18 @@ export default function Rule() {
   return (
     <Page
       breadcrumbs={[
-        { label: "Events", to: "/rules" },
-        { label: rule ? rule.name : "..." },
+        { label: "Events", to: "/events" },
+        { label: event ? event.name : "..." },
       ]}
     >
-      {rule && (
+      {event && (
         <>
           <Paper>
             <ErrorAlert error={err} className="mb-4" />
-            {editing && rule && (
+            {editing && event && (
               <>
-                <RuleCreate
-                  initialRule={rule}
+                <EventForm
+                  initialEvent={event}
                   onSubmit={handleUpdate}
                   onCancel={() => setEditing(false)}
                   error={updateError}
@@ -227,8 +227,8 @@ export default function Rule() {
             {!editing && (
               <div className="flex mb-4">
                 <div className="flex-grow mr-2">
-                  <h1 className="text-xl font-medium">{rule.name}</h1>
-                  <p className="text-slate-700">{rule.description}</p>
+                  <h1 className="text-xl font-medium">{event.name}</h1>
+                  <p className="text-slate-700">{event.description}</p>
                 </div>
                 <div className="shrink-0 flex">
                   <Button
@@ -257,23 +257,23 @@ export default function Rule() {
             {!editing && (
               <div>
                 <div className="mb-4">
-                  {rule.assign ? (
-                    <AssignableDisplayData id={rule.assign} size="md" link />
+                  {event.assign ? (
+                    <AssignableDisplayData id={event.assign} size="md" link />
                   ) : (
                     <span className="text-slate-500">Nothing to assign</span>
                   )}
                 </div>
                 <p>
-                  <DateTime dt={rule.nextRun} empty="Not scheduled" />
+                  <DateTime dt={event.nextRun} empty="Not scheduled" />
                 </p>
                 <p className="mb-1 text-sm text-slate-500">
-                  Started <DateTime dt={rule.at} />
+                  Started <DateTime dt={event.at} />
                 </p>
                 <p>
                   Repeat{" "}
                   <RepeatDisplay
-                    repeat={rule.repeat}
-                    repeatPart={rule.repeatPart}
+                    repeat={event.repeat}
+                    repeatPart={event.repeatPart}
                   />
                 </p>
               </div>
@@ -346,14 +346,14 @@ export default function Rule() {
               />
             </div>
           </div>
-          <RuleActions ruleId={params.id} zones={zoneMap} />
+          <EventActions eventId={params.id} zones={zoneMap} />
           <div className="border-t border-t-slate-100 text-slate-300 mt-4 text-align-center pt-2 text-sm">
-            <p>Event Id: {rule.id}</p>
+            <p>Event Id: {event.id}</p>
             <p>
-              Created at: <DateTime dt={rule.createdAt} />
+              Created at: <DateTime dt={event.createdAt} />
             </p>
             <p>
-              Updated at: <DateTime dt={rule.updatedAt} />
+              Updated at: <DateTime dt={event.updatedAt} />
             </p>
           </div>
         </>
@@ -362,13 +362,13 @@ export default function Rule() {
   );
 }
 
-function RuleActions(props: {
-  ruleId: string | undefined;
+function EventActions(props: {
+  eventId: string | undefined;
   zones: AccountZoneMap | null;
 }) {
-  const { ruleId, zones } = props;
+  const { eventId, zones } = props;
   const { data } = useSWR(
-    "/api/v1/rules/" + ruleId + "/actions",
+    "/api/v1/events/" + eventId + "/actions",
     actionsFetcher,
   );
 

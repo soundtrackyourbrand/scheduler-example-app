@@ -15,6 +15,7 @@ import { ExclamationTriangleIcon } from "@radix-ui/react-icons";
 import { toast } from "sonner";
 import { MetaFunction } from "@remix-run/node";
 import { pageTitle } from "~/lib/utils";
+import AssignableSelect from "~/components/AssignableSelect";
 
 export const meta: MetaFunction = () => {
   return [{ title: pageTitle("Settings") }];
@@ -73,6 +74,8 @@ export default function Settings() {
           })}
         </DropdownMenuContent>
       </DropdownMenu>
+      <h3 className="mt-3 mb-2 text-sm">Preview selected library</h3>
+      <AssignableSelect value={null} onChange={() => {}} />
     </Page>
   );
 }

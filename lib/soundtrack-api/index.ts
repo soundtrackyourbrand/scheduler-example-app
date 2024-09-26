@@ -20,11 +20,27 @@ export class Api {
     return res.data.account;
   }
   async getAccountZones(accountId: string): Promise<Zone[]> {
+    return await this.getAccountZonesPage(accountId, null, []);
+  }
+  private async getAccountZonesPage(
+    accountId: string,
+    cursor: string | null,
+    acc: Zone[],
+  ): Promise<Zone[]> {
     const res = await runQuery<AccountZonesQuery>(accountZonesQuery, {
       id: accountId,
+      cursor,
     });
     const zoneFn = toZoneFn(accountId);
-    return res.data.account.soundZones.edges.map(({ node }) => zoneFn(node));
+    const zones: Zone[] = acc.concat(
+      res.data.account.soundZones.edges.map(({ node }) => zoneFn(node)),
+    );
+    const pageInfo = res.data.account.soundZones.pageInfo;
+    if (pageInfo.hasNextPage && pageInfo.endCursor) {
+      return this.getAccountZonesPage(accountId, pageInfo.endCursor, zones);
+    } else {
+      return zones;
+    }
   }
   async getZone(zoneId: string): Promise<Zone> {
     const res = await runQuery<ZoneQuery>(zoneQuery, { id: zoneId });
@@ -132,6 +148,7 @@ type AccountZonesQuery = {
   account: {
     id: string;
     soundZones: {
+      pageInfo: PageInfo;
       edges: {
         node: AccountZone;
       }[];
@@ -140,10 +157,14 @@ type AccountZonesQuery = {
 };
 
 const accountZonesQuery = `
-query Scheduler_Zones($id: ID!) {
+query Scheduler_Zones($id: ID!, $cursor: String) {
   account(id: $id) {
     id
-    soundZones(first: 500) {
+    soundZones(first: 100, after: $cursor) {
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
       edges {
         node {
           id
@@ -158,6 +179,7 @@ query Scheduler_Zones($id: ID!) {
   }
 }
 `;
+
 type ZoneQuery = {
   soundZone: Zone;
 };
@@ -294,3 +316,8 @@ query Scheduler_Assignable($assignableId: ID!) {
   }
 }
 `;
+
+type PageInfo = {
+  hasNextPage: boolean;
+  endCursor?: string | null;
+};

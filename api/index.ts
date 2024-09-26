@@ -345,25 +345,25 @@ router.get("/events/:eventId/actions", async (req, res) => {
   res.json(r.get("actions"));
 });
 
-const soundtracApi = new Api();
+const soundtrackApi = new Api();
 
 router.get("/zones/:zoneId", async (req, res) => {
-  const zone = await soundtracApi.getZone(req.params.zoneId);
+  const zone = await soundtrackApi.getZone(req.params.zoneId);
   res.json(zone);
 });
 
 router.get("/zones", async (req, res) => {
-  const zones = await soundtracApi.getZones();
+  const zones = await soundtrackApi.getZones();
   res.json(zones);
 });
 
 router.get("/accounts/:accountId/library", async (req, res) => {
-  const library = await soundtracApi.getLibrary(req.params.accountId);
+  const library = await soundtrackApi.getLibrary(req.params.accountId);
   res.json(library);
 });
 
 router.get("/accounts/:accountId/zones", async (req, res) => {
-  const zones = await soundtracApi.getAccountZones(req.params.accountId);
+  const zones = await soundtrackApi.getAccountZones(req.params.accountId);
   res.json(zones);
 });
 
@@ -383,17 +383,17 @@ router.get("/accounts/:accountId/events", async (req, res) => {
 });
 
 router.get("/accounts/:accountId", async (req, res) => {
-  const account = await soundtracApi.getAccount(req.params.accountId);
+  const account = await soundtrackApi.getAccount(req.params.accountId);
   res.json(account);
 });
 
 router.get("/accounts", async (req, res) => {
-  const accounts = await soundtracApi.getAccounts();
+  const accounts = await soundtrackApi.getAccounts();
   res.json(accounts);
 });
 
 router.get("/assignable/:id", async (req, res) => {
-  const assignable = await soundtracApi.getAssignable(req.params.id);
+  const assignable = await soundtrackApi.getAssignable(req.params.id);
   if (assignable) {
     res.json(assignable);
   } else {

@@ -22,9 +22,9 @@ const defaultOpts = {} as RunOptions;
  * @param options See: RunOption
  * @returns The query response as T
  */
-export async function runQuery<T>(
+export async function runQuery<T, A>(
   document: string,
-  variables: unknown,
+  variables: A,
   options?: RunOptions,
 ): Promise<QueryResponse<T>> {
   return await run(document, variables, options);
@@ -37,17 +37,17 @@ export async function runQuery<T>(
  * @param options See: RunOption
  * @returns The mutation response as T
  */
-export async function runMutation<T>(
+export async function runMutation<T, A>(
   document: string,
-  variables: unknown,
+  variables: A,
   options?: RunOptions,
 ): Promise<QueryResponse<T>> {
   return await run(document, variables, options);
 }
 
-async function run<T>(
+async function run<T, A>(
   document: string,
-  variables: unknown,
+  variables: A,
   options?: RunOptions,
 ): Promise<QueryResponse<T>> {
   if (!process.env.SOUNDTRACK_API_URL) {
@@ -60,7 +60,7 @@ async function run<T>(
   const opts = options ?? defaultOpts;
 
   const body = JSON.stringify({ query: document, variables });
-  logger.debug("GraphQL request body: " + body);
+  logger.info("GraphQL request body: " + body);
   const res = await fetch(process.env.SOUNDTRACK_API_URL, {
     method: "POST",
     headers: {

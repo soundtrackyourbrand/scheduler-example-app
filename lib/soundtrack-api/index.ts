@@ -12,11 +12,16 @@ const logger = pino();
 
 export class Api {
   async getAccounts(): Promise<Account[]> {
-    const res = await runQuery<AccountsQuery>(accountsQuery, {});
+    const res = await runQuery<AccountsQuery, AccountsQueryArgs>(
+      accountsQuery,
+      undefined,
+    );
     return res.data.me.accounts.edges.map(({ node }) => node);
   }
   async getAccount(accountId: string): Promise<Account> {
-    const res = await runQuery<AccountQuery>(accountQuery, { id: accountId });
+    const res = await runQuery<AccountQuery, AccountQueryArgs>(accountQuery, {
+      id: accountId,
+    });
     return res.data.account;
   }
   async getAccountZones(accountId: string): Promise<Zone[]> {
@@ -27,10 +32,13 @@ export class Api {
     cursor: string | null,
     acc: Zone[],
   ): Promise<Zone[]> {
-    const res = await runQuery<AccountZonesQuery>(accountZonesQuery, {
-      id: accountId,
-      cursor,
-    });
+    const res = await runQuery<AccountZonesQuery, AccountZonesQueryArgs>(
+      accountZonesQuery,
+      {
+        id: accountId,
+        cursor,
+      },
+    );
     const zoneFn = toZoneFn(accountId);
     const zones: Zone[] = acc.concat(
       res.data.account.soundZones.edges.map(({ node }) => zoneFn(node)),
@@ -43,7 +51,9 @@ export class Api {
     }
   }
   async getZone(zoneId: string): Promise<Zone> {
-    const res = await runQuery<ZoneQuery>(zoneQuery, { id: zoneId });
+    const res = await runQuery<ZoneQuery, ZoneQueryArgs>(zoneQuery, {
+      id: zoneId,
+    });
     return res.data.soundZone;
   }
   async getZones(): Promise<Zone[]> {
@@ -54,10 +64,13 @@ export class Api {
     return zones.flat();
   }
   async assignMusic(zoneId: string, playFromId: string): Promise<void> {
-    await runMutation<AssignMutation>(assignMutation, { zoneId, playFromId });
+    await runMutation<AssignMutation, AssignMutationArgs>(assignMutation, {
+      zoneId,
+      playFromId,
+    });
   }
   async getAssignable(assignableId: string): Promise<Assignable | null> {
-    const res = await runQuery<AssignableQuery>(
+    const res = await runQuery<AssignableQuery, AssignableQueryArgs>(
       assignableQuery,
       { assignableId },
       { errorPolicy: "all" },
@@ -70,16 +83,71 @@ export class Api {
     return item ? toAssignable(item) : null;
   }
   async getLibrary(accountId: string): Promise<AccountLibrary> {
-    const res = await runQuery<LibraryQuery>(libraryQuery, { accountId });
-    const playlists: Assignable[] =
-      res.data.account.musicLibrary.playlists.edges.map(toAssignableNode);
-    const schedules: Assignable[] =
-      res.data.account.musicLibrary.schedules.edges.map(toAssignableNode);
-    return {
-      playlists,
-      schedules,
-    };
+    const res = await this.getLibraryPage(
+      accountId,
+      { playlists: null, schedules: null },
+      { playlists: [], schedules: [] },
+    );
+    return res;
   }
+  private async getLibraryPage(
+    accountId: string,
+    opts: LibraryPageOpts,
+    acc: AccountLibrary,
+  ): Promise<AccountLibrary> {
+    const res = await runQuery<LibraryQuery, LibraryQueryArgs>(libraryQuery, {
+      accountId,
+      playlists: opts.playlists !== false,
+      playlistCursor: libraryOptToCursor(opts.playlists),
+      schedules: opts.schedules !== false,
+      scheduleCursor: libraryOptToCursor(opts.schedules),
+    });
+
+    const musicLibrary = res.data.account.musicLibrary;
+    const playlists: Assignable[] =
+      musicLibrary.playlists?.edges.map(toAssignableNode) ?? [];
+    const schedules: Assignable[] =
+      musicLibrary.schedules?.edges.map(toAssignableNode) ?? [];
+
+    const nextOpts: LibraryPageOpts = {
+      playlists: libraryOptFromPageInfo(musicLibrary.playlists?.pageInfo),
+      schedules: libraryOptFromPageInfo(musicLibrary.schedules?.pageInfo),
+    };
+
+    const library: AccountLibrary = {
+      playlists: acc.playlists.concat(playlists),
+      schedules: acc.schedules.concat(schedules),
+    };
+
+    if (libraryPageOptsIsEmpty(nextOpts)) {
+      return library;
+    }
+
+    return this.getLibraryPage(accountId, nextOpts, library);
+  }
+}
+
+type LibraryPageOpts = {
+  playlists: boolean | string | null;
+  schedules: boolean | string | null;
+};
+
+function libraryPageOptsIsEmpty(opts: LibraryPageOpts): boolean {
+  return opts.playlists === false && opts.schedules === false;
+}
+
+function libraryOptToCursor(opt: boolean | string | null): string | null {
+  if (typeof opt === "boolean") return null;
+  return opt;
+}
+
+function libraryOptFromPageInfo(
+  pageInfo: PageInfo | undefined,
+): boolean | string {
+  if (!pageInfo) return false;
+  return pageInfo.hasNextPage && pageInfo.endCursor
+    ? pageInfo.endCursor
+    : false;
 }
 
 function toZoneFn(accountId: string) {
@@ -114,6 +182,8 @@ type AccountsQuery = {
   };
 };
 
+type AccountsQueryArgs = undefined;
+
 const accountsQuery = `
 query SchedulerAccounts {
   me {
@@ -135,6 +205,10 @@ type AccountQuery = {
   account: Account;
 };
 
+type AccountQueryArgs = {
+  id: string;
+};
+
 const accountQuery = `
 query SchedulerAccount($id: ID!) {
   account(id: $id) {
@@ -154,6 +228,11 @@ type AccountZonesQuery = {
       }[];
     };
   };
+};
+
+type AccountZonesQueryArgs = {
+  id: string;
+  cursor: string | null;
 };
 
 const accountZonesQuery = `
@@ -182,6 +261,10 @@ query Scheduler_Zones($id: ID!, $cursor: String) {
 
 type ZoneQuery = {
   soundZone: Zone;
+};
+
+type ZoneQueryArgs = {
+  id: string;
 };
 
 const zoneQuery = `
@@ -219,10 +302,12 @@ type MusicLibraryNode = {
 };
 
 type MusicLibrary = {
-  playlists: {
+  playlists?: {
+    pageInfo: PageInfo;
     edges: MusicLibraryNode[];
   };
-  schedules: {
+  schedules?: {
+    pageInfo: PageInfo;
     edges: MusicLibraryNode[];
   };
 };
@@ -261,21 +346,43 @@ type LibraryQuery = {
   };
 };
 
+type LibraryQueryArgs = {
+  accountId: string;
+  playlistCursor: string | null;
+  playlists: boolean;
+  scheduleCursor: string | null;
+  schedules: boolean;
+};
+
 const libraryQuery = `
 ${displayFragment}
 ${playlistFragment}
 ${scheduleFragment}
-query Scheduler_Library($accountId: ID!) {
+query Scheduler_Library(
+  $accountId: ID!
+  $playlistCursor: String
+  $playlists: Boolean!
+  $scheduleCursor: String
+  $schedules: Boolean!
+) {
   account(id: $accountId) {
     musicLibrary {
-      playlists(first:1000) {
+      playlists(first:1000, after: $playlistCursor) @include(if: $playlists) {
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
         edges {
           node {
             ...PlaylistFragment
           }
         }
       }
-      schedules(first:1000) {
+      schedules(first:1000, after: $scheduleCursor) @include(if: $schedules) {
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
         edges {
           node {
             ...ScheduleFragment
@@ -290,6 +397,11 @@ type AssignMutation = {
   soundZones: string[];
 };
 
+type AssignMutationArgs = {
+  zoneId: string;
+  playFromId: string;
+};
+
 const assignMutation = `
 mutation Scheduler_Assign($zoneId: ID!, $playFromId: ID!) {
   soundZoneAssignSource(input: { soundZones: [$zoneId], source: $playFromId }) {
@@ -301,6 +413,10 @@ mutation Scheduler_Assign($zoneId: ID!, $playFromId: ID!) {
 type AssignableQuery = {
   playlist: LibraryItem | null;
   schedule: LibraryItem | null;
+};
+
+type AssignableQueryArgs = {
+  assignableId: string;
 };
 
 const assignableQuery = `

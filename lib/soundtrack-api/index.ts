@@ -103,20 +103,15 @@ export class Api {
       scheduleCursor: libraryOptToCursor(opts.schedules),
     });
 
+    const musicLibrary = res.data.account.musicLibrary;
     const playlists: Assignable[] =
-      res.data.account.musicLibrary.playlists?.edges.map(toAssignableNode) ??
-      [];
+      musicLibrary.playlists?.edges.map(toAssignableNode) ?? [];
     const schedules: Assignable[] =
-      res.data.account.musicLibrary.schedules?.edges.map(toAssignableNode) ??
-      [];
+      musicLibrary.schedules?.edges.map(toAssignableNode) ?? [];
 
     const nextOpts: LibraryPageOpts = {
-      playlists: libraryOptFromPageInfo(
-        res.data.account.musicLibrary.playlists?.pageInfo,
-      ),
-      schedules: libraryOptFromPageInfo(
-        res.data.account.musicLibrary.schedules?.pageInfo,
-      ),
+      playlists: libraryOptFromPageInfo(musicLibrary.playlists?.pageInfo),
+      schedules: libraryOptFromPageInfo(musicLibrary.schedules?.pageInfo),
     };
 
     const library: AccountLibrary = {

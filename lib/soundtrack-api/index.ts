@@ -122,7 +122,7 @@ export class Api {
 
   async getZones(skipCache: boolean = false): Promise<Zone[]> {
     logger.info(`Getting zones`);
-    const accounts = await this.getAccounts(skipCache);
+    const accounts = await this.getAccounts();
     const zones = await Promise.all(
       accounts.map((account) => this.getAccountZones(account.id, skipCache)),
     );

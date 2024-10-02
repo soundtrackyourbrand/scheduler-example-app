@@ -10,10 +10,11 @@ import { cn } from "~/lib/utils";
 
 type PageProps = {
   breadcrumbs?: BreadcrumbItemData[];
+  noWrap?: boolean;
 };
 
 export default function Page(props: PageProps & PropsWithChildren) {
-  const { breadcrumbs, children } = props;
+  const { breadcrumbs, noWrap, children } = props;
   return (
     <div className="px-3">
       <div className="bg-navbar text-navbar-foreground py-2.5 -mx-3 px-3">
@@ -29,12 +30,17 @@ export default function Page(props: PageProps & PropsWithChildren) {
           </div>
         </div>
       </div>
-      <div className="max-w-screen-lg m-auto py-3">
+      <PageWrap className="mt-3">
         {breadcrumbs && <Breadcrumbs items={breadcrumbs} className="mb-3" />}
-        {children}
-      </div>
+      </PageWrap>
+      {noWrap ? children : <PageWrap>{children}</PageWrap>}
     </div>
   );
+}
+
+export function PageWrap(props: { className?: string } & PropsWithChildren) {
+  const cx = cn("max-w-screen-lg m-auto", props.className);
+  return <div className={cx}>{props.children}</div>;
 }
 
 function TopNavLink(props: NavLinkProps) {

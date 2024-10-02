@@ -25,11 +25,13 @@ import {
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import {
+  BookmarkFilledIcon,
+  BookmarkIcon,
   CaretDownIcon,
   CaretUpIcon,
+  CheckIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  MixerHorizontalIcon,
 } from "@radix-ui/react-icons";
 import {
   Popover,
@@ -38,15 +40,16 @@ import {
 } from "~/components/ui/popover";
 import { Label } from "~/components/ui/label";
 import { PopoverClose } from "@radix-ui/react-popover";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./ui/select";
 import { Skeleton } from "./ui/skeleton";
+import { Command, CommandInput, CommandItem } from "./ui/command";
+import { CommandEmpty, CommandList } from "cmdk";
+import { cn } from "~/lib/utils";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from "./ui/tooltip";
 
 type BulkAction<TData> = {
   key: Key | null | undefined;
@@ -139,7 +142,7 @@ export const DataTable = function DataTable<TData, TValue>({
                   const cx = header.column.getCanSort()
                     ? "cursor-pointer select-none"
                     : undefined;
-                  const onClick = header.column.getCanSort()
+                  const handleSort = header.column.getCanSort()
                     ? header.column.getToggleSortingHandler()
                     : undefined;
                   let sortIcon = null;
@@ -155,18 +158,22 @@ export const DataTable = function DataTable<TData, TValue>({
                     <TableHead key={header.id}>
                       {header.isPlaceholder ? null : (
                         <div className={"group flex items-center " + cx}>
-                          <div className="flex items-center" onClick={onClick}>
-                            {flexRender(
-                              header.column.columnDef.header,
-                              header.getContext(),
+                          <div className="flex items-center">
+                            <div onClick={handleSort}>
+                              {flexRender(
+                                header.column.columnDef.header,
+                                header.getContext(),
+                              )}
+                            </div>
+                            {header.column.getCanFilter() && (
+                              <ColumnFilter column={header.column} id={id} />
                             )}
                             {header.column.getCanSort() && (
-                              <div className="w-6">{sortIcon}</div>
+                              <div className="w-6" onClick={handleSort}>
+                                {sortIcon}
+                              </div>
                             )}
                           </div>
-                          {header.column.getCanFilter() && (
-                            <ColumnFilter column={header.column} id={id} />
-                          )}
                         </div>
                       )}
                     </TableHead>
@@ -270,55 +277,86 @@ function ColumnFilter<TData>(props: { id: string; column: Column<TData> }) {
         : [],
     [column.getFacetedUniqueValues(), filter],
   );
+  const currentFilterValue = column.getFilterValue();
   return (
     <Popover>
-      <PopoverTrigger asChild>
-        <MixerHorizontalIcon
-          className={
-            (column.getFilterValue() ? "opacity-100 " : "") +
-            "opacity-0 group-hover:opacity-100 ml-1"
-          }
-        />
+      <PopoverTrigger>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              {currentFilterValue ? (
+                <BookmarkFilledIcon
+                  className={
+                    (currentFilterValue ? "opacity-100 " : "") +
+                    "opacity-0 group-hover:opacity-100 ml-1"
+                  }
+                />
+              ) : (
+                <BookmarkIcon
+                  className={"opacity-0 group-hover:opacity-100 ml-1"}
+                />
+              )}
+            </TooltipTrigger>
+            <TooltipContent>
+              {currentFilterValue
+                ? "This column is filtered"
+                : "Click to filter"}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </PopoverTrigger>
-      <PopoverContent>
-        <Label
-          htmlFor={"filter-input-" + column.id + id}
-          className="mb-2 block"
-        >
-          Filter
-        </Label>
-
+      <PopoverContent className="p-0">
         {filter === "select" && (
-          <Select
-            value={column.getFilterValue()?.toString()}
-            onValueChange={column.setFilterValue}
-          >
-            <SelectTrigger id={"filter-input-" + column.id + id}>
-              <SelectValue placeholder="Select" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
+          <div>
+            <Command>
+              <CommandInput placeholder="Filter" />
+              <CommandEmpty>No filter</CommandEmpty>
+              <CommandList>
                 {sortedUniqueValues.map((v) => {
                   return (
-                    <SelectItem key={v} value={v}>
-                      {v}
-                    </SelectItem>
+                    <CommandItem
+                      key={v}
+                      onSelect={() =>
+                        column.setFilterValue(
+                          currentFilterValue !== v ? v : null,
+                        )
+                      }
+                    >
+                      <div className="w-full flex items-center justify-between">
+                        {v}
+                        <CheckIcon
+                          className={cn(
+                            v === currentFilterValue
+                              ? "opacity-100"
+                              : "opacity-0",
+                          )}
+                        />
+                      </div>
+                    </CommandItem>
                   );
                 })}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
+              </CommandList>
+            </Command>
+          </div>
         )}
         {filter !== "select" && (
-          <Input
-            id={"filter-input-" + column.id + id}
-            value={(column.getFilterValue() ?? "") as string}
-            onChange={(e) => {
-              column.setFilterValue(e.target.value);
-            }}
-          />
+          <div className="p-2">
+            <Label
+              htmlFor={"filter-input-" + column.id + id}
+              className="mb-2 block"
+            >
+              Filter
+            </Label>
+            <Input
+              id={"filter-input-" + column.id + id}
+              value={(column.getFilterValue() ?? "") as string}
+              onChange={(e) => {
+                column.setFilterValue(e.target.value);
+              }}
+            />
+          </div>
         )}
-        <div className="mt-2">
+        <div className="p-2">
           <PopoverClose asChild>
             <Button size="sm" variant="outline">
               Close

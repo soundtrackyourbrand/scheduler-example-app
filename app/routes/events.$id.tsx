@@ -19,7 +19,7 @@ import {
   Account,
   AccountZone,
   AccountZoneMap,
-  Zone,
+  ZoneEvent,
   Event as _Event,
 } from "~/types";
 import { DataTable } from "~/components/DataTable";
@@ -27,6 +27,7 @@ import {
   columns as zoneColumns,
   ZoneRow,
   ZoneRowAction,
+  ZoneRowActionData,
 } from "~/components/columns/zone";
 import { columns as actionColumns } from "~/components/columns/action";
 import { AssignableDisplayData } from "~/components/AssignableDisplay";
@@ -154,8 +155,10 @@ export default function Event() {
     );
   }, [zonesWithAccount]);
 
-  const activeZoneIds: string[] =
-    event?.zones.map((zoneEvent) => zoneEvent.zoneId) ?? [];
+  const activeZoneEvents: ZoneEvent[] = event?.zones ?? [];
+  const activeZoneIds: string[] = activeZoneEvents.map(
+    (zoneEvent) => zoneEvent.zoneId,
+  );
 
   const handleDelete = async () => {
     await destroyTrigger();
@@ -186,12 +189,13 @@ export default function Event() {
     mutate(eventKey);
   };
 
-  const handleSingleZoneAction = async (action: ZoneRowAction, zone: Zone) => {
+  const handleSingleZoneAction = async (
+    action: ZoneRowAction,
+    data: ZoneRowActionData,
+  ) => {
     const update: EventZonesUpdate = { add: [], remove: [] };
-    if (action === "add")
-      update.add.push({ zoneId: zone.id, accountId: zone.account.id });
-    if (action === "remove")
-      update.remove.push({ zoneId: zone.id, accountId: zone.account.id });
+    if (action === "add") update.add.push(data);
+    if (action === "remove") update.remove.push(data);
     await handleZoneAction(update);
   };
 
@@ -291,9 +295,13 @@ export default function Event() {
                 loadingRows={event.zones.length}
                 data={
                   zoneMap
-                    ? (activeZoneIds
-                        .map((id) => zoneMap[id])
-                        .map((zone) => ({
+                    ? (activeZoneEvents
+                        .map((zoneEvent) => [
+                          zoneEvent,
+                          zoneMap[zoneEvent.zoneId],
+                        ])
+                        .map(([zoneEvent, zone]) => ({
+                          zoneEvent,
                           zone,
                           action: "remove",
                           onAction: handleSingleZoneAction,
@@ -306,11 +314,8 @@ export default function Event() {
                     label: "Remove",
                     action: async (data) => {
                       await handleZoneAction({
-                        remove: data.map(({ zone }) => ({
-                          zoneId: zone.id,
-                          accountId: zone.account.id,
-                        })),
                         add: [],
+                        remove: data.map(({ zoneEvent }) => zoneEvent),
                       });
                     },
                   },
@@ -329,6 +334,10 @@ export default function Event() {
                   (zonesWithAccount
                     ?.filter((zone) => !activeZoneIds.includes(zone.id))
                     .map((zone) => ({
+                      zoneEvent: {
+                        zoneId: zone.id,
+                        accountId: zone.account.id,
+                      },
                       zone,
                       action: "add",
                       onAction: handleSingleZoneAction,
@@ -340,10 +349,7 @@ export default function Event() {
                     label: "Add",
                     action: async (data) => {
                       await handleZoneAction({
-                        add: data.map(({ zone }) => ({
-                          zoneId: zone.id,
-                          accountId: zone.account.id,
-                        })),
+                        add: data.map(({ zoneEvent }) => zoneEvent),
                         remove: [],
                       });
                     },

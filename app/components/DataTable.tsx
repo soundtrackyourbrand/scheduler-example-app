@@ -41,8 +41,13 @@ import {
 import { Label } from "~/components/ui/label";
 import { PopoverClose } from "@radix-ui/react-popover";
 import { Skeleton } from "./ui/skeleton";
-import { Command, CommandInput, CommandItem } from "./ui/command";
-import { CommandEmpty, CommandList } from "cmdk";
+import {
+  Command,
+  CommandInput,
+  CommandItem,
+  CommandEmpty,
+  CommandList,
+} from "./ui/command";
 import { cn } from "~/lib/utils";
 import {
   Tooltip,
@@ -312,10 +317,10 @@ function ColumnFilter<TData>(props: { id: string; column: Column<TData> }) {
               <CommandInput placeholder="Filter" />
               <CommandEmpty>No filter</CommandEmpty>
               <CommandList>
-                {sortedUniqueValues.map((v) => {
+                {sortedUniqueValues.map((v, i) => {
                   return (
                     <CommandItem
-                      key={v}
+                      key={v + i}
                       onSelect={() =>
                         column.setFilterValue(
                           currentFilterValue !== v ? v : null,

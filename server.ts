@@ -9,7 +9,7 @@ import { sync } from "./lib/db/index.js";
 import worker from "./lib/worker/index.js";
 import apiRouter from "./api/index.js";
 
-const logger = pino();
+const logger = pino().child({ module: "server" });
 logger.info("Starting in NODE_ENV=" + process.env.NODE_ENV);
 
 // The dev server parses keys in non-production

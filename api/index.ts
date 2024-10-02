@@ -1,7 +1,6 @@
 import { Router } from "express";
 import bodyParser from "body-parser";
 import { inspect } from "util";
-import pino from "pino";
 
 import { Api } from "../lib/soundtrack-api/index.js";
 import {
@@ -16,8 +15,9 @@ import {
 import { Model } from "sequelize";
 import { InMemoryCache } from "lib/cache/index.js";
 import { SequelizeCache } from "lib/db/cache.js";
+import { getLogger } from "lib/logger/index.js";
 
-const logger = pino().child({ module: "api/index" });
+const logger = getLogger("api/index");
 
 const jsonParser = bodyParser.json();
 

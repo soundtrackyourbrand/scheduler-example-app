@@ -1,6 +1,6 @@
-import pino from "pino";
+import { getLogger } from "lib/logger";
 
-const logger = pino().child({ module: "lib/cache/index" });
+const logger = getLogger("lib/cache/index");
 
 export interface Cache {
   get: (key: string) => Promise<string | undefined>;

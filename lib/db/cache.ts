@@ -1,8 +1,8 @@
 import { Cache } from "lib/cache";
-import pino from "pino";
 import { CacheEntry } from ".";
+import { getLogger } from "lib/logger";
 
-const logger = pino().child({ module: "lib/db/cache" });
+const logger = getLogger("lib/db/cache");
 
 export class SequelizeCache implements Cache {
   constructor() {

@@ -1,8 +1,8 @@
 import { inspect } from "util";
-import pino from "pino";
 import { Semaphore } from "@shopify/semaphore";
+import { getLogger } from "lib/logger";
 
-const logger = pino().child({ module: "lib/soundtrack-api/client" });
+const logger = getLogger("lib/soundtrack-api/client");
 const semaphore = new Semaphore(5);
 
 type QueryResponse<T> = {
@@ -64,7 +64,7 @@ async function run<T, A>(
   const opts = options ?? defaultOpts;
 
   const body = JSON.stringify({ query: document, variables });
-  logger.debug("GraphQL request body: " + body);
+  logger.trace("GraphQL request body: " + body);
   const res = await fetch(process.env.SOUNDTRACK_API_URL, {
     method: "POST",
     headers: {
@@ -80,8 +80,9 @@ async function run<T, A>(
     throw new Error(msg);
   }
 
-  const availableTokens = res.headers.get("x-ratelimiting-tokens-available");
-  logger.debug(`Available tokens ${availableTokens}`);
+  const rateLimitCost = res.headers.get("x-ratelimiting-cost");
+  const rateLimitAvailable = res.headers.get("x-ratelimiting-tokens-available");
+  logger.debug(`Used ${rateLimitCost} tokens, ${rateLimitAvailable} available`);
 
   const { data, errors } = (await res.json()) as QueryResponse<T>;
 

@@ -2,14 +2,14 @@ import { createRequestHandler } from "@remix-run/express";
 import type { ServerBuild } from "@remix-run/node";
 import express from "express";
 import dotenv from "dotenv";
-import pino from "pino";
 import pinoHttp from "pino-http";
 
 import { sync } from "./lib/db/index.js";
 import worker from "./lib/worker/index.js";
 import apiRouter from "./api/index.js";
+import { getLogger } from "./lib/logger/index.js";
 
-const logger = pino().child({ module: "server" });
+const logger = getLogger("server");
 logger.info("Starting in NODE_ENV=" + process.env.NODE_ENV);
 
 // The dev server parses keys in non-production

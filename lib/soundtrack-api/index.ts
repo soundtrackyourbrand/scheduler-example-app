@@ -1,4 +1,3 @@
-import pino from "pino";
 import { runMutation, runQuery } from "./client.js";
 import {
   Account,
@@ -8,8 +7,9 @@ import {
   Zone,
 } from "./types.js";
 import { Cache } from "lib/cache/index.js";
+import { getLogger } from "lib/logger/index.js";
 
-const logger = pino().child({ module: "lib/soundtrack-api/index" });
+const logger = getLogger("lib/soundtrack-api/index");
 
 type ApiOptions = {
   cache?: Cache;

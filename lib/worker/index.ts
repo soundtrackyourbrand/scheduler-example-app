@@ -1,5 +1,4 @@
 import { Model, Op } from "sequelize";
-import pino from "pino";
 
 import {
   Action,
@@ -10,8 +9,9 @@ import {
   ZoneEvent,
 } from "../db/index.js";
 import { Api } from "../soundtrack-api/index.js";
+import { getLogger } from "lib/logger/index.js";
 
-const logger = pino().child({ module: "lib/worker/index" });
+const logger = getLogger("lib/worker/index");
 
 type WorkerOptions = {
   interval: number;

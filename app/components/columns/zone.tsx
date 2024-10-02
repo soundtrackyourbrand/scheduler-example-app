@@ -38,6 +38,25 @@ export const columns: ColumnDef<ZoneRow>[] = [
     enableHiding: false,
   },
   {
+    id: "account",
+    header: "Account",
+    accessorFn: ({ zone }) => zone.account.businessName,
+    cell: (props) => {
+      return <AccountLink data={props.row.original.zone.account} />;
+    },
+    meta: {
+      filter: "select",
+    },
+  },
+  {
+    id: "location",
+    header: "Location",
+    accessorFn: ({ zone }) => zone.location.name,
+    meta: {
+      filter: "select",
+    },
+  },
+  {
     id: "zone",
     header: "Zone",
     filterFn: "includesString",
@@ -52,25 +71,6 @@ export const columns: ColumnDef<ZoneRow>[] = [
           }}
         />
       );
-    },
-  },
-  {
-    id: "location",
-    header: "Location",
-    accessorFn: ({ zone }) => zone.location.name,
-    meta: {
-      filter: "select",
-    },
-  },
-  {
-    id: "account",
-    header: "Account",
-    accessorFn: ({ zone }) => zone.account.businessName,
-    cell: (props) => {
-      return <AccountLink data={props.row.original.zone.account} />;
-    },
-    meta: {
-      filter: "select",
     },
   },
   {

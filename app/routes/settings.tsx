@@ -1,21 +1,28 @@
 import React, { useState } from "react";
 import useSWR, { mutate } from "swr";
 import Page from "~/components/Page";
-import { DropdownMenuTrigger } from "@radix-ui/react-dropdown-menu";
 import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-} from "~/components/ui/dropdown-menu";
+  Command,
+  CommandEmpty,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "~/components/ui/command";
 import { Button } from "~/components/ui/button";
 import { accountsFetcher, cacheFetcher } from "~/fetchers";
 import { useMusicLibrary } from "~/lib/MusicLibraryContext";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
-import { ExclamationTriangleIcon, ReloadIcon } from "@radix-ui/react-icons";
+import {
+  CheckIcon,
+  ExclamationTriangleIcon,
+  ReloadIcon,
+} from "@radix-ui/react-icons";
 import { toast } from "sonner";
 import { MetaFunction } from "@remix-run/node";
-import { pageTitle } from "~/lib/utils";
+import { cn, pageTitle } from "~/lib/utils";
 import AssignableSelect from "~/components/AssignableSelect";
+import { Popover, PopoverContent } from "~/components/ui/popover";
+import { PopoverTrigger } from "@radix-ui/react-popover";
 
 export const meta: MetaFunction = () => {
   return [{ title: pageTitle("Settings") }];
@@ -106,30 +113,45 @@ export default function Settings() {
           <AlertDescription>{musicLibraryErrorMessage}</AlertDescription>
         </Alert>
       )}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
+      <Popover>
+        <PopoverTrigger asChild>
           <Button variant="outline" className="mt-4">
             {musicLibraryButtonLabel}
           </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent>
-          {accounts?.map((account) => {
-            return (
-              <DropdownMenuCheckboxItem
-                key={account.id}
-                checked={libraryId !== null && libraryId === account.id}
-                onCheckedChange={(checked) => {
-                  if (!checked) return;
-                  setLibraryId(account.id);
-                  toast("Library updated");
-                }}
-              >
-                {account.businessName}
-              </DropdownMenuCheckboxItem>
-            );
-          })}
-        </DropdownMenuContent>
-      </DropdownMenu>
+        </PopoverTrigger>
+        <PopoverContent className="w-[280px] p-0">
+          <Command>
+            <CommandInput placeholder="Select account" />
+            <CommandEmpty>No accounts</CommandEmpty>
+            <CommandList>
+              {accounts?.map((account) => {
+                return (
+                  <CommandItem
+                    key={account.id}
+                    value={account.businessName}
+                    onSelect={() => {
+                      setLibraryId(account.id);
+                      toast("Library updated");
+                    }}
+                  >
+                    <div className="w-full flex items-center justify-between">
+                      <span>{account.businessName}</span>
+                      <CheckIcon
+                        className={cn(
+                          "shrink-0",
+                          account.id === libraryId
+                            ? "opacity-100"
+                            : "opacity-0",
+                        )}
+                      />
+                    </div>
+                  </CommandItem>
+                );
+              })}
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
       <h3 className="mt-3 mb-2 text-sm">Preview selected library</h3>
       <AssignableSelect value={null} onChange={() => {}} />
       <div className="border-t border-slate-200 my-4"></div>

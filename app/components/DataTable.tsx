@@ -30,6 +30,7 @@ import {
   CaretDownIcon,
   CaretUpIcon,
   CheckIcon,
+  ChevronDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
 } from "@radix-ui/react-icons";
@@ -55,6 +56,12 @@ import {
   TooltipContent,
   TooltipProvider,
 } from "./ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 
 type BulkAction<TData> = {
   key: Key | null | undefined;
@@ -229,6 +236,35 @@ export const DataTable = function DataTable<TData, TValue>({
         </div>
         {pagination && table.getPageCount() > 0 && (
           <div className="flex items-center space-x-2">
+            <div className="flex items-center">
+              <p className="text-sm text-muted-foreground mr-1">Per page</p>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm">
+                    {table.getState().pagination.pageSize}
+                    <ChevronDownIcon className="ml-2" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  {[10, 25, 100].map((pageSize) => {
+                    return (
+                      <DropdownMenuCheckboxItem
+                        key={pageSize}
+                        checked={
+                          table.getState().pagination.pageSize === pageSize
+                        }
+                        onCheckedChange={(checked) => {
+                          if (!checked) return;
+                          table.setPageSize(pageSize);
+                        }}
+                      >
+                        {pageSize}
+                      </DropdownMenuCheckboxItem>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
             <p className="text-sm text-muted-foreground">
               Page {table.getState().pagination.pageIndex + 1} of{" "}
               {table.getPageCount()}

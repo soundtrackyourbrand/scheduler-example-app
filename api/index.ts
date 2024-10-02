@@ -15,7 +15,7 @@ import {
 } from "../lib/db/index.js";
 import { Model } from "sequelize";
 
-const logger = pino();
+const logger = pino().child({ module: "api/index" });
 
 const jsonParser = bodyParser.json();
 

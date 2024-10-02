@@ -8,7 +8,7 @@ import {
   Zone,
 } from "./types.js";
 
-const logger = pino();
+const logger = pino().child({ module: "lib/soundtrack-api/index" });
 
 export class Api {
   async getAccounts(): Promise<Account[]> {

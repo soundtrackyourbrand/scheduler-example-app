@@ -11,7 +11,7 @@ import {
 } from "../db/index.js";
 import { Api } from "../soundtrack-api/index.js";
 
-const logger = pino();
+const logger = pino().child({ module: "lib/worker/index" });
 
 type WorkerOptions = {
   interval: number;

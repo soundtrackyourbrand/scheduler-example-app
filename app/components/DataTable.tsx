@@ -46,6 +46,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+import { Skeleton } from "./ui/skeleton";
 
 type BulkAction<TData> = {
   key: Key | null | undefined;
@@ -58,6 +59,8 @@ interface DataTableProps<TData, TValue> {
   data: TData[];
   bulkActions?: BulkAction<TData>[];
   pagination?: boolean;
+  loading?: boolean;
+  loadingRows?: number;
 }
 
 export const DataTable = function DataTable<TData, TValue>({
@@ -65,6 +68,8 @@ export const DataTable = function DataTable<TData, TValue>({
   data,
   bulkActions,
   pagination,
+  loading = false,
+  loadingRows = 0,
 }: DataTableProps<TData, TValue>) {
   const id = useId();
   const [rowSelection, setRowSelection] = useState({});
@@ -97,7 +102,7 @@ export const DataTable = function DataTable<TData, TValue>({
                   key={action.key}
                   size="sm"
                   variant="ghost"
-                  disabled={selectedRows.length === 0}
+                  disabled={selectedRows.length === 0 || loading}
                   onClick={async () => {
                     await action.action(
                       selectedRows.map((row) => row.original),
@@ -117,6 +122,7 @@ export const DataTable = function DataTable<TData, TValue>({
             <Button
               size="sm"
               variant="ghost"
+              disabled={loading}
               onClick={() => table.setColumnFilters([])}
             >
               Clear filters
@@ -170,7 +176,7 @@ export const DataTable = function DataTable<TData, TValue>({
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows?.length ? (
+            {table.getRowModel().rows?.length && !loading ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
@@ -186,13 +192,18 @@ export const DataTable = function DataTable<TData, TValue>({
                   ))}
                 </TableRow>
               ))
+            ) : loading && loadingRows > 0 ? (
+              <LoadingRows
+                n={loadingRows}
+                colSpan={table.getVisibleFlatColumns().length}
+              />
             ) : (
               <TableRow>
                 <TableCell
-                  colSpan={columns.length}
+                  colSpan={table.getVisibleFlatColumns().length}
                   className="h-24 text-center"
                 >
-                  No results.
+                  {loading ? "Loading ..." : "No results"}
                 </TableCell>
               </TableRow>
             )}
@@ -214,7 +225,7 @@ export const DataTable = function DataTable<TData, TValue>({
               variant="outline"
               size="sm"
               onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
+              disabled={!table.getCanPreviousPage() || loading}
             >
               <ChevronLeftIcon />
             </Button>
@@ -222,7 +233,7 @@ export const DataTable = function DataTable<TData, TValue>({
               variant="outline"
               size="sm"
               onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
+              disabled={!table.getCanNextPage() || loading}
             >
               <ChevronRightIcon />
             </Button>
@@ -232,6 +243,19 @@ export const DataTable = function DataTable<TData, TValue>({
     </div>
   );
 };
+
+function LoadingRows({ n, colSpan }: { n: number; colSpan: number }) {
+  const rows: React.ReactNode[] = [];
+  const cell = (
+    <TableCell colSpan={colSpan}>
+      <Skeleton>&nbsp;</Skeleton>
+    </TableCell>
+  );
+  for (let i = 0; i < n; i++) {
+    rows.push(<TableRow key={"loadingRow-" + i}>{cell}</TableRow>);
+  }
+  return rows;
+}
 
 function ColumnFilter<TData>(props: { id: string; column: Column<TData> }) {
   const { id, column } = props;

@@ -12,6 +12,7 @@ const logger = pino();
 
 export class Api {
   async getAccounts(): Promise<Account[]> {
+    logger.info("Getting accounts");
     const res = await runQuery<AccountsQuery, AccountsQueryArgs>(
       accountsQuery,
       undefined,
@@ -19,12 +20,14 @@ export class Api {
     return res.data.me.accounts.edges.map(({ node }) => node);
   }
   async getAccount(accountId: string): Promise<Account> {
+    logger.info(`Getting accounts ${accountId}`);
     const res = await runQuery<AccountQuery, AccountQueryArgs>(accountQuery, {
       id: accountId,
     });
     return res.data.account;
   }
   async getAccountZones(accountId: string): Promise<Zone[]> {
+    logger.info(`Getting zones for account ${accountId}`);
     return await this.getAccountZonesPage(accountId, null, []);
   }
   private async getAccountZonesPage(
@@ -32,6 +35,7 @@ export class Api {
     cursor: string | null,
     acc: Zone[],
   ): Promise<Zone[]> {
+    logger.info(`Getting zones for account ${accountId} from cursor ${cursor}`);
     const res = await runQuery<AccountZonesQuery, AccountZonesQueryArgs>(
       accountZonesQuery,
       {
@@ -51,12 +55,14 @@ export class Api {
     }
   }
   async getZone(zoneId: string): Promise<Zone> {
+    logger.info(`Getting zone ${zoneId}`);
     const res = await runQuery<ZoneQuery, ZoneQueryArgs>(zoneQuery, {
       id: zoneId,
     });
     return res.data.soundZone;
   }
   async getZones(): Promise<Zone[]> {
+    logger.info(`Getting zones`);
     const accounts = await this.getAccounts();
     const zones = await Promise.all(
       accounts.map((account) => this.getAccountZones(account.id)),
@@ -64,12 +70,14 @@ export class Api {
     return zones.flat();
   }
   async assignMusic(zoneId: string, playFromId: string): Promise<void> {
+    logger.info(`Assigning ${playFromId} to ${zoneId}`);
     await runMutation<AssignMutation, AssignMutationArgs>(assignMutation, {
       zoneId,
       playFromId,
     });
   }
   async getAssignable(assignableId: string): Promise<Assignable | null> {
+    logger.info(`Getting assignable ${assignableId}`);
     const res = await runQuery<AssignableQuery, AssignableQueryArgs>(
       assignableQuery,
       { assignableId },
@@ -83,6 +91,7 @@ export class Api {
     return item ? toAssignable(item) : null;
   }
   async getLibrary(accountId: string): Promise<AccountLibrary> {
+    logger.info(`Getting library ${accountId}`);
     const res = await this.getLibraryPage(
       accountId,
       { playlists: null, schedules: null },

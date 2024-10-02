@@ -60,7 +60,7 @@ async function executeEvent(runId: number, event: Model<any, any>) {
     } catch (e) {
       logger.info(`Failed to assign music to ${zoneId}: ${e}`);
       status = "error";
-      error = e;
+      error = "" + e;
     }
 
     await Action.create({

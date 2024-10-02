@@ -38,13 +38,8 @@ export class Api {
     const cached = await this.cached<Account[]>(key, skipCache);
     if (cached) return cached;
 
-    const accounts = await this.getAccountsRemote();
-    await this.cache?.set("accounts", JSON.stringify(accounts));
-    return accounts;
-  }
-
-  private async getAccountsRemote(): Promise<Account[]> {
     const accounts = await this.getAccountsRemotePage(null, []);
+    await this.cache?.set("accounts", JSON.stringify(accounts));
     return accounts;
   }
 

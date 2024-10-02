@@ -7,6 +7,7 @@ export interface Cache {
   set: (key: string, value: string) => Promise<void>;
   delete: (key: string) => Promise<void>;
   clear: () => Promise<void>;
+  count: () => Promise<number>;
 }
 
 type CachedValue = {
@@ -47,5 +48,10 @@ export class InMemoryCache implements Cache {
     logger.debug(`Clearing cache`);
     this.data = {};
     return Promise.resolve();
+  }
+
+  async count() {
+    logger.debug(`Counting items in cache`);
+    return Promise.resolve(Object.keys(this.data).length);
   }
 }

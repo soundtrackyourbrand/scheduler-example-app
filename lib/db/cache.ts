@@ -33,4 +33,9 @@ export class SequelizeCache implements Cache {
     logger.debug(`Clearing cache`);
     await CacheEntry.truncate();
   }
+
+  async count(): Promise<number> {
+    logger.debug(`Counting items in cache`);
+    return await CacheEntry.count();
+  }
 }

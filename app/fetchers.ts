@@ -5,6 +5,7 @@ import {
   Account,
   AccountLibrary,
   Assignable,
+  CacheMetadata,
   Event,
   EventAction,
   Run,
@@ -79,6 +80,8 @@ export const accountLibraryFetcher: Fetcher<AccountLibrary, string> = (url) =>
   defaultFetcher(url).then(toLibrary);
 export const assignableFetcher: Fetcher<Assignable, string> = (url) =>
   defaultFetcher(url).then(toAssignable);
+
+export const cacheFetcher: Fetcher<CacheMetadata, string> = defaultFetcher;
 
 export const errorHandler = async (res: Response) => {
   if (!res.ok) {

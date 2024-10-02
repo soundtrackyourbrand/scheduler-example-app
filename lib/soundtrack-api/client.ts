@@ -1,9 +1,10 @@
 import { inspect } from "util";
+import retry from "retry";
 import { Semaphore } from "@shopify/semaphore";
 import { getLogger } from "lib/logger";
 
 const logger = getLogger("lib/soundtrack-api/client");
-const semaphore = new Semaphore(5);
+const semaphore = new Semaphore(3);
 
 type QueryResponse<T> = {
   data: T;
@@ -29,8 +30,7 @@ export async function runQuery<T, A>(
   variables: A,
   options?: RunOptions,
 ): Promise<QueryResponse<T>> {
-  const token = await semaphore.acquire();
-  return run<T, A>(document, variables, options).finally(() => token.release());
+  return await run<T, A>(document, variables, options);
 }
 
 /**
@@ -45,11 +45,33 @@ export async function runMutation<T, A>(
   variables: A,
   options?: RunOptions,
 ): Promise<QueryResponse<T>> {
-  const token = await semaphore.acquire();
-  return run<T, A>(document, variables, options).finally(() => token.release());
+  return await run<T, A>(document, variables, options);
 }
 
 async function run<T, A>(
+  document: string,
+  variables: A,
+  options?: RunOptions,
+): Promise<QueryResponse<T>> {
+  const token = await semaphore.acquire();
+  const operation = retry.operation({ minTimeout: 10 * 1000 });
+  return new Promise((resolve, reject) => {
+    operation.attempt(async (attempt: number) => {
+      logger.debug(`Attempt ${attempt}`);
+      try {
+        const response = await request<T, A>(document, variables, options);
+        token.release();
+        resolve(response);
+      } catch (e) {
+        if (operation.retry(e as Error)) return;
+        token.release();
+        reject(operation.mainError());
+      }
+    });
+  });
+}
+
+async function request<T, A>(
   document: string,
   variables: A,
   options?: RunOptions,
@@ -82,6 +104,7 @@ async function run<T, A>(
 
   const rateLimitCost = res.headers.get("x-ratelimiting-cost");
   const rateLimitAvailable = res.headers.get("x-ratelimiting-tokens-available");
+
   logger.debug(`Used ${rateLimitCost} tokens, ${rateLimitAvailable} available`);
 
   const { data, errors } = (await res.json()) as QueryResponse<T>;

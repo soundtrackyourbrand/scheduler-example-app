@@ -3,7 +3,7 @@ import pino from "pino";
 import { Semaphore } from "@shopify/semaphore";
 
 const logger = pino().child({ module: "lib/soundtrack-api/client" });
-const semaphore = new Semaphore(2);
+const semaphore = new Semaphore(5);
 
 type QueryResponse<T> = {
   data: T;
@@ -64,7 +64,7 @@ async function run<T, A>(
   const opts = options ?? defaultOpts;
 
   const body = JSON.stringify({ query: document, variables });
-  logger.info("GraphQL request body: " + body);
+  logger.debug("GraphQL request body: " + body);
   const res = await fetch(process.env.SOUNDTRACK_API_URL, {
     method: "POST",
     headers: {
@@ -79,6 +79,9 @@ async function run<T, A>(
     logger.error(msg);
     throw new Error(msg);
   }
+
+  const availableTokens = res.headers.get("x-ratelimiting-tokens-available");
+  logger.debug(`Available tokens ${availableTokens}`);
 
   const { data, errors } = (await res.json()) as QueryResponse<T>;
 

@@ -195,7 +195,7 @@ export default function Settings() {
           Clear cache
         </Button>
       </div>
-      <p>{cache?.count ?? "No"} items currently cached</p>
+      <p>{cache?.count ?? "No"} item cached</p>
     </Page>
   );
 }

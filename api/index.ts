@@ -14,6 +14,7 @@ import {
   ZoneEvent,
 } from "../lib/db/index.js";
 import { Model } from "sequelize";
+import { InMemoryCache } from "lib/cache/index.js";
 
 const logger = pino().child({ module: "api/index" });
 
@@ -345,7 +346,8 @@ router.get("/events/:eventId/actions", async (req, res) => {
   res.json(r.get("actions"));
 });
 
-const soundtrackApi = new Api();
+const cache = new InMemoryCache();
+const soundtrackApi = new Api({ cache });
 
 router.get("/zones/:zoneId", async (req, res) => {
   try {
@@ -434,6 +436,12 @@ router.get("/assignable/:id", async (req, res) => {
     logger.error("Failed to get assignable: " + e);
     res.sendStatus(500);
   }
+});
+
+router.delete("/cache", async (req, res) => {
+  logger.info("Clearing cache");
+  await cache.clear();
+  res.sendStatus(200);
 });
 
 router.all("*", (req, res) => {

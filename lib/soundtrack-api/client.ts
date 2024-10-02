@@ -1,7 +1,9 @@
 import { inspect } from "util";
 import pino from "pino";
+import { Semaphore } from "@shopify/semaphore";
 
-const logger = pino();
+const logger = pino().child({ module: "lib/soundtrack-api/client" });
+const semaphore = new Semaphore(2);
 
 type QueryResponse<T> = {
   data: T;
@@ -27,7 +29,8 @@ export async function runQuery<T, A>(
   variables: A,
   options?: RunOptions,
 ): Promise<QueryResponse<T>> {
-  return await run(document, variables, options);
+  const token = await semaphore.acquire();
+  return run<T, A>(document, variables, options).finally(() => token.release());
 }
 
 /**
@@ -42,7 +45,8 @@ export async function runMutation<T, A>(
   variables: A,
   options?: RunOptions,
 ): Promise<QueryResponse<T>> {
-  return await run(document, variables, options);
+  const token = await semaphore.acquire();
+  return run<T, A>(document, variables, options).finally(() => token.release());
 }
 
 async function run<T, A>(

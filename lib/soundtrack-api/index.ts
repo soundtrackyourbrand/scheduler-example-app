@@ -7,35 +7,97 @@ import {
   Assignable,
   Zone,
 } from "./types.js";
+import { Cache } from "lib/cache/index.js";
 
 const logger = pino().child({ module: "lib/soundtrack-api/index" });
 
+type ApiOptions = {
+  cache?: Cache;
+};
+
+function deserialize<T>(value: string | undefined): T | undefined {
+  if (value === undefined) return;
+  return JSON.parse(value);
+}
+
 export class Api {
-  async getAccounts(): Promise<Account[]> {
+  cache: Cache | undefined;
+
+  constructor(opts?: ApiOptions) {
+    this.cache = opts?.cache;
+  }
+
+  async cached<T>(key: string, skipCache: boolean): Promise<T | undefined> {
+    if (!this.cache || skipCache) return Promise.resolve(undefined);
+    return await this.cache.get(key).then(deserialize<T>);
+  }
+
+  async getAccounts(skipCache: boolean = false): Promise<Account[]> {
     logger.info("Getting accounts");
+    const key = "accounts";
+    const cached = await this.cached<Account[]>(key, skipCache);
+    if (cached) return cached;
+
+    const accounts = await this.getAccountsRemote();
+    await this.cache?.set("accounts", JSON.stringify(accounts));
+    return accounts;
+  }
+
+  private async getAccountsRemote(): Promise<Account[]> {
+    const accounts = await this.getAccountsRemotePage(null, []);
+    return accounts;
+  }
+
+  private async getAccountsRemotePage(
+    cursor: string | null,
+    acc: Account[],
+  ): Promise<Account[]> {
+    logger.info(`Getting accounts with cursor ${cursor} has ${acc.length}`);
     const res = await runQuery<AccountsQuery, AccountsQueryArgs>(
       accountsQuery,
-      undefined,
+      { cursor },
     );
-    return res.data.me.accounts.edges.map(({ node }) => node);
+    const accounts = acc.concat(
+      res.data.me.accounts.edges.map(({ node }) => node),
+    );
+    const pageInfo = res.data.me.accounts.pageInfo;
+    if (pageInfo.hasNextPage && pageInfo.endCursor) {
+      return this.getAccountsRemotePage(pageInfo.endCursor, accounts);
+    } else {
+      return accounts;
+    }
   }
+
   async getAccount(accountId: string): Promise<Account> {
-    logger.info(`Getting accounts ${accountId}`);
+    logger.info(`Getting account ${accountId}`);
     const res = await runQuery<AccountQuery, AccountQueryArgs>(accountQuery, {
       id: accountId,
     });
     return res.data.account;
   }
-  async getAccountZones(accountId: string): Promise<Zone[]> {
+
+  async getAccountZones(
+    accountId: string,
+    skipCache: boolean = false,
+  ): Promise<Zone[]> {
     logger.info(`Getting zones for account ${accountId}`);
-    return await this.getAccountZonesPage(accountId, null, []);
+    const key = `account:${accountId}:zones`;
+    const cached = await this.cached<Zone[]>(key, skipCache);
+    if (cached) return cached;
+
+    const accountZones = await this.getAccountZonesPage(accountId, null, []);
+    await this.cache?.set(key, JSON.stringify(accountZones));
+    return accountZones;
   }
+
   private async getAccountZonesPage(
     accountId: string,
     cursor: string | null,
     acc: Zone[],
   ): Promise<Zone[]> {
-    logger.info(`Getting zones for account ${accountId} from cursor ${cursor}`);
+    logger.info(
+      `Getting zones for account ${accountId}/${cursor} has ${acc.length}`,
+    );
     const res = await runQuery<AccountZonesQuery, AccountZonesQueryArgs>(
       accountZonesQuery,
       {
@@ -54,6 +116,7 @@ export class Api {
       return zones;
     }
   }
+
   async getZone(zoneId: string): Promise<Zone> {
     logger.info(`Getting zone ${zoneId}`);
     const res = await runQuery<ZoneQuery, ZoneQueryArgs>(zoneQuery, {
@@ -61,14 +124,16 @@ export class Api {
     });
     return res.data.soundZone;
   }
-  async getZones(): Promise<Zone[]> {
+
+  async getZones(skipCache: boolean = false): Promise<Zone[]> {
     logger.info(`Getting zones`);
-    const accounts = await this.getAccounts();
+    const accounts = await this.getAccounts(skipCache);
     const zones = await Promise.all(
-      accounts.map((account) => this.getAccountZones(account.id)),
+      accounts.map((account) => this.getAccountZones(account.id, skipCache)),
     );
     return zones.flat();
   }
+
   async assignMusic(zoneId: string, playFromId: string): Promise<void> {
     logger.info(`Assigning ${playFromId} to ${zoneId}`);
     await runMutation<AssignMutation, AssignMutationArgs>(assignMutation, {
@@ -76,6 +141,7 @@ export class Api {
       playFromId,
     });
   }
+
   async getAssignable(assignableId: string): Promise<Assignable | null> {
     logger.info(`Getting assignable ${assignableId}`);
     const res = await runQuery<AssignableQuery, AssignableQueryArgs>(
@@ -90,6 +156,7 @@ export class Api {
     const item = res.data.playlist ?? res.data.schedule;
     return item ? toAssignable(item) : null;
   }
+
   async getLibrary(accountId: string): Promise<AccountLibrary> {
     logger.info(`Getting library ${accountId}`);
     const res = await this.getLibraryPage(
@@ -99,6 +166,7 @@ export class Api {
     );
     return res;
   }
+
   private async getLibraryPage(
     accountId: string,
     opts: LibraryPageOpts,
@@ -184,6 +252,7 @@ function toAssignable(item: LibraryItem): Assignable {
 type AccountsQuery = {
   me: {
     accounts: {
+      pageInfo: PageInfo;
       edges: {
         node: Account;
       }[];
@@ -191,13 +260,19 @@ type AccountsQuery = {
   };
 };
 
-type AccountsQueryArgs = undefined;
+type AccountsQueryArgs = {
+  cursor: string | null;
+};
 
 const accountsQuery = `
-query SchedulerAccounts {
+query SchedulerAccounts($cursor: String) {
   me {
     ... on PublicAPIClient {
-      accounts(first: 500) {
+      accounts(first: 100, after: $cursor) {
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
         edges {
           node {
             id

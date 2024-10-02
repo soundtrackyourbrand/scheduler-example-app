@@ -15,6 +15,7 @@ import {
 } from "../lib/db/index.js";
 import { Model } from "sequelize";
 import { InMemoryCache } from "lib/cache/index.js";
+import { SequelizeCache } from "lib/db/cache.js";
 
 const logger = pino().child({ module: "api/index" });
 
@@ -346,7 +347,9 @@ router.get("/events/:eventId/actions", async (req, res) => {
   res.json(r.get("actions"));
 });
 
-const cache = new InMemoryCache();
+const cache = process.env["DB_CACHE"]
+  ? new SequelizeCache()
+  : new InMemoryCache();
 const soundtrackApi = new Api({ cache });
 
 router.get("/zones/:zoneId", async (req, res) => {

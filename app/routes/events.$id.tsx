@@ -102,14 +102,16 @@ export default function Event() {
   const { mutate } = useSWRConfig();
 
   const { data: event, error } = useSWR(eventKey, eventFetcher);
-  const { data: accounts, error: accountsError } = useSWR(
-    "/api/v1/accounts",
-    accountsFetcher,
-  );
-  const { data: zones, error: zonesError } = useSWR(
-    "/api/v1/zones",
-    zonesFetcher,
-  );
+  const {
+    data: accounts,
+    error: accountsError,
+    isLoading: isLoadingAccount,
+  } = useSWR("/api/v1/accounts", accountsFetcher);
+  const {
+    data: zones,
+    error: zonesError,
+    isLoading: isLoadingZones,
+  } = useSWR("/api/v1/zones", zonesFetcher);
 
   const { trigger: destroyTrigger, error: destroyError } = useSWRMutation(
     eventKey,
@@ -285,6 +287,8 @@ export default function Event() {
               <DataTable
                 pagination
                 columns={zoneColumns}
+                loading={isLoadingZones || isLoadingAccount}
+                loadingRows={event.zones.length}
                 data={
                   zoneMap
                     ? (activeZoneIds
@@ -319,6 +323,8 @@ export default function Event() {
               <DataTable
                 pagination
                 columns={zoneColumns}
+                loading={isLoadingZones || isLoadingAccount}
+                loadingRows={10} // Page size
                 data={
                   (zonesWithAccount
                     ?.filter((zone) => !activeZoneIds.includes(zone.id))

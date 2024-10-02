@@ -157,14 +157,23 @@ export class Api {
     return item ? toAssignable(item) : null;
   }
 
-  async getLibrary(accountId: string): Promise<AccountLibrary> {
+  async getLibrary(
+    accountId: string,
+    skipCache: boolean = false,
+  ): Promise<AccountLibrary> {
     logger.info(`Getting library ${accountId}`);
-    const res = await this.getLibraryPage(
+    const key = `accounts:${accountId}:library`;
+    const cached = await this.cached<AccountLibrary>(key, skipCache);
+    if (cached) return cached;
+
+    const library = await this.getLibraryPage(
       accountId,
       { playlists: null, schedules: null },
       { playlists: [], schedules: [] },
     );
-    return res;
+
+    await this.cache?.set(key, JSON.stringify(library));
+    return library;
   }
 
   private async getLibraryPage(

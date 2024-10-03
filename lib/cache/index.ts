@@ -1,4 +1,4 @@
-import { getLogger } from "lib/logger";
+import { getLogger } from "../logger/index.js";
 
 const logger = getLogger("lib/cache/index");
 

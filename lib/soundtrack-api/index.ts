@@ -6,8 +6,8 @@ import {
   Assignable,
   Zone,
 } from "./types.js";
-import { Cache } from "lib/cache/index.js";
-import { getLogger } from "lib/logger/index.js";
+import { Cache } from "../cache/index.js";
+import { getLogger } from "../logger/index.js";
 
 const logger = getLogger("lib/soundtrack-api/index");
 

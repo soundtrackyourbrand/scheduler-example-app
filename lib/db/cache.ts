@@ -1,6 +1,6 @@
-import { Cache } from "lib/cache";
-import { CacheEntry } from ".";
-import { getLogger } from "lib/logger";
+import { Cache } from "../cache/index.js";
+import { CacheEntry } from "./index.js";
+import { getLogger } from "../logger/index.js";
 
 const logger = getLogger("lib/db/cache");
 

@@ -1,7 +1,6 @@
 import { Router } from "express";
 import bodyParser from "body-parser";
 import { inspect } from "util";
-import pino from "pino";
 
 import { Api } from "../lib/soundtrack-api/index.js";
 import {
@@ -14,8 +13,11 @@ import {
   ZoneEvent,
 } from "../lib/db/index.js";
 import { Model } from "sequelize";
+import { InMemoryCache } from "lib/cache/index.js";
+import { SequelizeCache } from "lib/db/cache.js";
+import { getLogger } from "lib/logger/index.js";
 
-const logger = pino();
+const logger = getLogger("api/index");
 
 const jsonParser = bodyParser.json();
 
@@ -345,7 +347,10 @@ router.get("/events/:eventId/actions", async (req, res) => {
   res.json(r.get("actions"));
 });
 
-const soundtrackApi = new Api();
+const cache = process.env["DB_CACHE"]
+  ? new SequelizeCache()
+  : new InMemoryCache();
+const soundtrackApi = new Api({ cache });
 
 router.get("/zones/:zoneId", async (req, res) => {
   try {
@@ -359,7 +364,8 @@ router.get("/zones/:zoneId", async (req, res) => {
 
 router.get("/zones", async (req, res) => {
   try {
-    const zones = await soundtrackApi.getZones();
+    const skipCache = req.query["skipCache"] === "true";
+    const zones = await soundtrackApi.getZones(skipCache);
     res.json(zones);
   } catch (e) {
     logger.error("Failed to get zones: " + e);
@@ -369,7 +375,11 @@ router.get("/zones", async (req, res) => {
 
 router.get("/accounts/:accountId/library", async (req, res) => {
   try {
-    const library = await soundtrackApi.getLibrary(req.params.accountId);
+    const skipCache = req.query["skipCache"] === "true";
+    const library = await soundtrackApi.getLibrary(
+      req.params.accountId,
+      skipCache,
+    );
     res.json(library);
   } catch (e) {
     logger.error("Failed to get library: " + e);
@@ -414,7 +424,8 @@ router.get("/accounts/:accountId", async (req, res) => {
 
 router.get("/accounts", async (req, res) => {
   try {
-    const accounts = await soundtrackApi.getAccounts();
+    const skipCache = req.query["skipCache"] === "true";
+    const accounts = await soundtrackApi.getAccounts(skipCache);
     res.json(accounts);
   } catch (e) {
     logger.error("Failed to get accounts: " + e);
@@ -434,6 +445,17 @@ router.get("/assignable/:id", async (req, res) => {
     logger.error("Failed to get assignable: " + e);
     res.sendStatus(500);
   }
+});
+
+router.delete("/cache", async (req, res) => {
+  logger.info("Clearing cache");
+  await cache.clear();
+  res.sendStatus(200);
+});
+
+router.get("/cache", async (req, res) => {
+  const count = await cache.count();
+  res.json({ count });
 });
 
 router.all("*", (req, res) => {

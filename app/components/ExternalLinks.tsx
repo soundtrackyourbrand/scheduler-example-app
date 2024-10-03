@@ -21,7 +21,7 @@ export function ExternalLink(
     <a href={props.href} target="_blank" rel="noreferrer" className={cx}>
       {props.text && <span>{props.text}</span>}
       {props.children}
-      <ExternalLinkIcon className="ml-1 text-slate-400 hover:text-black flex-shrink-0" />
+      <ExternalLinkIcon className="ml-1 text-slate-400 hover:text-primary flex-shrink-0" />
     </a>
   );
 }

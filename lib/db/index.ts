@@ -100,6 +100,14 @@ export const ZoneEvent = _sequelize.define(
   },
 );
 
+export const CacheEntry = _sequelize.define("CacheEntry", {
+  key: {
+    type: DataTypes.STRING(1024),
+    primaryKey: true,
+  },
+  value: DataTypes.TEXT,
+});
+
 // Relations
 // =========
 
@@ -124,6 +132,7 @@ export async function sync(options: SyncOptions) {
   await ZoneEvent.sync(options);
   await Run.sync(options);
   await Action.sync(options);
+  await CacheEntry.sync(options);
 }
 
 export const sequelize = _sequelize;

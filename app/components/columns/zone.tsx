@@ -1,17 +1,21 @@
 import React from "react";
 import { ColumnDef } from "@tanstack/react-table";
-import { AccountZone, Zone } from "~/types";
+import { AccountZone, ZoneEvent } from "~/types";
 import { Checkbox } from "~/components/ui/checkbox";
 import { Button } from "~/components/ui/button";
 import { AccountLink, ZoneLink } from "../ExternalLinks";
 import { MinusCircledIcon, PlusCircledIcon } from "@radix-ui/react-icons";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 
 export type ZoneRowAction = "add" | "remove";
 
+export type ZoneRowActionData = { zoneId: string; accountId: string };
+
 export type ZoneRow = {
-  zone: AccountZone;
+  zoneEvent: Omit<ZoneEvent, "id">;
+  zone: AccountZone | undefined;
   action: "add" | "remove";
-  onAction: (action: ZoneRowAction, zone: Zone) => void;
+  onAction: (action: ZoneRowAction, data: ZoneRowActionData) => void;
 };
 
 export const columns: ColumnDef<ZoneRow>[] = [
@@ -40,9 +44,11 @@ export const columns: ColumnDef<ZoneRow>[] = [
   {
     id: "account",
     header: "Account",
-    accessorFn: ({ zone }) => zone.account.businessName,
+    accessorFn: ({ zone }) => zone?.account.businessName,
     cell: (props) => {
-      return <AccountLink data={props.row.original.zone.account} />;
+      return props.row.original.zone ? (
+        <AccountLink data={props.row.original.zone.account} />
+      ) : null;
     },
     meta: {
       filter: "select",
@@ -51,7 +57,7 @@ export const columns: ColumnDef<ZoneRow>[] = [
   {
     id: "location",
     header: "Location",
-    accessorFn: ({ zone }) => zone.location.name,
+    accessorFn: ({ zone }) => zone?.location.name,
     meta: {
       filter: "select",
     },
@@ -60,9 +66,9 @@ export const columns: ColumnDef<ZoneRow>[] = [
     id: "zone",
     header: "Zone",
     filterFn: "includesString",
-    accessorFn: ({ zone }) => zone.name,
+    accessorFn: ({ zoneEvent, zone }) => zone?.name ?? zoneEvent.zoneId,
     cell: (props) => {
-      return (
+      return props.row.original.zone ? (
         <ZoneLink
           data={{
             name: props.row.original.zone.name,
@@ -70,6 +76,21 @@ export const columns: ColumnDef<ZoneRow>[] = [
             accountId: props.row.original.zone.account.id,
           }}
         />
+      ) : (
+        <p className="w-[150px] truncate">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost">Zone not available</Button>
+            </PopoverTrigger>
+            <PopoverContent className="overflow-auto text-sm">
+              <p className="font-bold">Zone not available</p>
+              <p>
+                Could not load data for zone:{" "}
+                {props.row.original.zoneEvent.zoneId}
+              </p>
+            </PopoverContent>
+          </Popover>
+        </p>
       );
     },
   },
@@ -79,14 +100,12 @@ export const columns: ColumnDef<ZoneRow>[] = [
     enableColumnFilter: false,
     enableSorting: false,
     cell: ({ row }) => {
-      const { zone, onAction, action } = row.original;
+      const { zoneEvent, onAction, action } = row.original;
       return (
         <Button
           size="sm"
           variant="ghost"
-          onClick={() => {
-            onAction(row.original.action, zone);
-          }}
+          onClick={() => onAction(action, zoneEvent)}
         >
           {action === "add" ? <PlusCircledIcon /> : <MinusCircledIcon />}
         </Button>

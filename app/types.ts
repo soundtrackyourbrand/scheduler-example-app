@@ -89,3 +89,7 @@ export type AccountLibrary = {
   playlists: Assignable[];
   schedules: Assignable[];
 };
+
+export type CacheMetadata = {
+  count: number;
+};

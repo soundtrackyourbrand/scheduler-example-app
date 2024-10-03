@@ -19,7 +19,7 @@ import {
   Account,
   AccountZone,
   AccountZoneMap,
-  Zone,
+  ZoneEvent,
   Event as _Event,
 } from "~/types";
 import { DataTable } from "~/components/DataTable";
@@ -27,10 +27,11 @@ import {
   columns as zoneColumns,
   ZoneRow,
   ZoneRowAction,
+  ZoneRowActionData,
 } from "~/components/columns/zone";
 import { columns as actionColumns } from "~/components/columns/action";
 import { AssignableDisplayData } from "~/components/AssignableDisplay";
-import Page from "~/components/Page";
+import Page, { PageWrap } from "~/components/Page";
 import ErrorAlert from "~/components/ErrorAlert";
 import { toast } from "sonner";
 import { CopyIcon, Pencil1Icon, TrashIcon } from "@radix-ui/react-icons";
@@ -154,8 +155,10 @@ export default function Event() {
     );
   }, [zonesWithAccount]);
 
-  const activeZoneIds: string[] =
-    event?.zones.map((zoneEvent) => zoneEvent.zoneId) ?? [];
+  const activeZoneEvents: ZoneEvent[] = event?.zones ?? [];
+  const activeZoneIds: string[] = activeZoneEvents.map(
+    (zoneEvent) => zoneEvent.zoneId,
+  );
 
   const handleDelete = async () => {
     await destroyTrigger();
@@ -186,12 +189,13 @@ export default function Event() {
     mutate(eventKey);
   };
 
-  const handleSingleZoneAction = async (action: ZoneRowAction, zone: Zone) => {
+  const handleSingleZoneAction = async (
+    action: ZoneRowAction,
+    data: ZoneRowActionData,
+  ) => {
     const update: EventZonesUpdate = { add: [], remove: [] };
-    if (action === "add")
-      update.add.push({ zoneId: zone.id, accountId: zone.account.id });
-    if (action === "remove")
-      update.remove.push({ zoneId: zone.id, accountId: zone.account.id });
+    if (action === "add") update.add.push(data);
+    if (action === "remove") update.remove.push(data);
     await handleZoneAction(update);
   };
 
@@ -210,80 +214,124 @@ export default function Event() {
         { label: "Events", to: "/events" },
         { label: event ? event.name : "..." },
       ]}
+      noWrap
     >
       {event && (
         <>
-          <Paper>
-            <ErrorAlert error={err} className="mb-4" />
-            {editing && event && (
-              <>
-                <EventForm
-                  initialEvent={event}
-                  onSubmit={handleUpdate}
-                  onCancel={() => setEditing(false)}
-                  error={updateError}
-                  action="Update event"
-                />
-              </>
-            )}
-            {!editing && (
-              <div className="flex mb-4">
-                <div className="flex-grow mr-2">
-                  <h1 className="text-xl font-medium">{event.name}</h1>
-                  <p className="text-slate-700">{event.description}</p>
-                </div>
-                <div className="shrink-0 flex">
-                  <Button
-                    onClick={() => setEditing(true)}
-                    size="sm"
-                    className="mr-1"
-                  >
-                    <Pencil1Icon className="mr-2" />
-                    Edit
-                  </Button>
-                  <Button size="sm" className="mr-1" onClick={handleCopy}>
-                    <CopyIcon className="mr-2" />
-                    Duplicate
-                  </Button>
-                  <Button
-                    onClick={handleDelete}
-                    variant="destructive"
-                    size="sm"
-                  >
-                    <TrashIcon className="mr-2" />
-                    Delete
-                  </Button>
-                </div>
-              </div>
-            )}
-            {!editing && (
-              <div>
-                <div className="mb-4">
-                  {event.assign ? (
-                    <AssignableDisplayData id={event.assign} size="md" link />
-                  ) : (
-                    <span className="text-slate-500">Nothing to assign</span>
-                  )}
-                </div>
-                <p>
-                  <DateTime dt={event.nextRun} empty="Not scheduled" />
-                </p>
-                <p className="mb-1 text-sm text-slate-500">
-                  Started <DateTime dt={event.at} />
-                </p>
-                <p>
-                  Repeat{" "}
-                  <RepeatDisplay
-                    repeat={event.repeat}
-                    repeatPart={event.repeatPart}
+          <PageWrap>
+            <Paper>
+              <ErrorAlert error={err} className="mb-4" />
+              {editing && event && (
+                <>
+                  <EventForm
+                    initialEvent={event}
+                    onSubmit={handleUpdate}
+                    onCancel={() => setEditing(false)}
+                    error={updateError}
+                    action="Update event"
                   />
-                </p>
-              </div>
-            )}
-          </Paper>
+                </>
+              )}
+              {!editing && (
+                <div className="flex mb-4">
+                  <div className="flex-grow mr-2">
+                    <h1 className="text-xl font-medium">{event.name}</h1>
+                    <p className="text-slate-700">{event.description}</p>
+                  </div>
+                  <div className="shrink-0 flex">
+                    <Button
+                      onClick={() => setEditing(true)}
+                      size="sm"
+                      className="mr-1"
+                    >
+                      <Pencil1Icon className="mr-2" />
+                      Edit
+                    </Button>
+                    <Button size="sm" className="mr-1" onClick={handleCopy}>
+                      <CopyIcon className="mr-2" />
+                      Duplicate
+                    </Button>
+                    <Button
+                      onClick={handleDelete}
+                      variant="destructive"
+                      size="sm"
+                    >
+                      <TrashIcon className="mr-2" />
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              )}
+              {!editing && (
+                <div>
+                  <div className="mb-4">
+                    {event.assign ? (
+                      <AssignableDisplayData id={event.assign} size="md" link />
+                    ) : (
+                      <span className="text-slate-500">Nothing to assign</span>
+                    )}
+                  </div>
+                  <p>
+                    <DateTime dt={event.nextRun} empty="Not scheduled" />
+                  </p>
+                  <p className="mb-1 text-sm text-slate-500">
+                    Started <DateTime dt={event.at} />
+                  </p>
+                  <p>
+                    Repeat{" "}
+                    <RepeatDisplay
+                      repeat={event.repeat}
+                      repeatPart={event.repeatPart}
+                    />
+                  </p>
+                </div>
+              )}
+            </Paper>
+          </PageWrap>
           <div className="flex mt-4">
             <div className="flex-1">
+              <h2 className="text-sm font-medium mb-2">Available zones</h2>
+              <p className="text-sm text-slate-400">
+                Zones available on your API key that are not part of this event
+              </p>
+              <DataTable
+                pagination
+                columns={zoneColumns}
+                loading={isLoadingZones || isLoadingAccount}
+                loadingRows={10} // Page size
+                data={
+                  (zonesWithAccount
+                    ?.filter((zone) => !activeZoneIds.includes(zone.id))
+                    .map((zone) => ({
+                      zoneEvent: {
+                        zoneId: zone.id,
+                        accountId: zone.account.id,
+                      },
+                      zone,
+                      action: "add",
+                      onAction: handleSingleZoneAction,
+                    })) as ZoneRow[]) ?? []
+                }
+                bulkActions={[
+                  {
+                    key: "add",
+                    label: "Add",
+                    action: async (data) => {
+                      await handleZoneAction({
+                        add: data.map(({ zoneEvent }) => zoneEvent),
+                        remove: [],
+                      });
+                    },
+                  },
+                ]}
+              />
+            </div>
+            <div className="flex-none w-2"></div>
+            <div className="flex-1">
               <h2 className="text-sm font-medium mb-2">Active zones</h2>
+              <p className="text-sm text-slate-400">
+                Zones that have been added to this event
+              </p>
               <DataTable
                 pagination
                 columns={zoneColumns}
@@ -291,9 +339,13 @@ export default function Event() {
                 loadingRows={event.zones.length}
                 data={
                   zoneMap
-                    ? (activeZoneIds
-                        .map((id) => zoneMap[id])
-                        .map((zone) => ({
+                    ? (activeZoneEvents
+                        .map((zoneEvent) => [
+                          zoneEvent,
+                          zoneMap[zoneEvent.zoneId],
+                        ])
+                        .map(([zoneEvent, zone]) => ({
+                          zoneEvent,
                           zone,
                           action: "remove",
                           onAction: handleSingleZoneAction,
@@ -306,45 +358,8 @@ export default function Event() {
                     label: "Remove",
                     action: async (data) => {
                       await handleZoneAction({
-                        remove: data.map(({ zone }) => ({
-                          zoneId: zone.id,
-                          accountId: zone.account.id,
-                        })),
                         add: [],
-                      });
-                    },
-                  },
-                ]}
-              />
-            </div>
-            <div className="flex-none w-2"></div>
-            <div className="flex-1">
-              <h2 className="text-sm font-medium mb-2">Zones</h2>
-              <DataTable
-                pagination
-                columns={zoneColumns}
-                loading={isLoadingZones || isLoadingAccount}
-                loadingRows={10} // Page size
-                data={
-                  (zonesWithAccount
-                    ?.filter((zone) => !activeZoneIds.includes(zone.id))
-                    .map((zone) => ({
-                      zone,
-                      action: "add",
-                      onAction: handleSingleZoneAction,
-                    })) as ZoneRow[]) ?? []
-                }
-                bulkActions={[
-                  {
-                    key: "add",
-                    label: "Add",
-                    action: async (data) => {
-                      await handleZoneAction({
-                        add: data.map(({ zone }) => ({
-                          zoneId: zone.id,
-                          accountId: zone.account.id,
-                        })),
-                        remove: [],
+                        remove: data.map(({ zoneEvent }) => zoneEvent),
                       });
                     },
                   },
@@ -352,16 +367,18 @@ export default function Event() {
               />
             </div>
           </div>
-          <EventActions eventId={params.id} zones={zoneMap} />
-          <div className="border-t border-t-slate-100 text-slate-300 mt-4 text-align-center pt-2 text-sm">
-            <p>Event Id: {event.id}</p>
-            <p>
-              Created at: <DateTime dt={event.createdAt} />
-            </p>
-            <p>
-              Updated at: <DateTime dt={event.updatedAt} />
-            </p>
-          </div>
+          <PageWrap>
+            <EventActions eventId={params.id} zones={zoneMap} />
+            <div className="border-t border-t-slate-100 text-slate-300 mt-4 text-align-center pt-2 text-sm">
+              <p>Event Id: {event.id}</p>
+              <p>
+                Created at: <DateTime dt={event.createdAt} />
+              </p>
+              <p>
+                Updated at: <DateTime dt={event.updatedAt} />
+              </p>
+            </div>
+          </PageWrap>
         </>
       )}
     </Page>

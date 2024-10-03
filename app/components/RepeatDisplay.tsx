@@ -1,3 +1,4 @@
+import pluralize from "pluralize";
 import { RepeatPart } from "~/types";
 
 type RepeatDisplayProps = {
@@ -31,13 +32,9 @@ export default function RepeatDisplay({
     return titleCase ? ucfirst(s) : s;
   }
 
-  return `${titleCase ? "Every" : "every"} ${repeat} ${plur(repeatPart, repeat)}`;
+  return `${titleCase ? "Every" : "every"} ${pluralize(repeatPart, repeat, true)}`;
 }
 
 function ucfirst(s: string): string {
   return s.charAt(0).toUpperCase() + s.substring(1);
-}
-
-function plur(s: string, n: number): string {
-  return n === 1 ? s : s + "s";
 }

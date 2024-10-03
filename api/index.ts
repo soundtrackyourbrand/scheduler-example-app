@@ -13,9 +13,9 @@ import {
   ZoneEvent,
 } from "../lib/db/index.js";
 import { Model } from "sequelize";
-import { InMemoryCache } from "lib/cache/index.js";
-import { SequelizeCache } from "lib/db/cache.js";
-import { getLogger } from "lib/logger/index.js";
+import { InMemoryCache } from "../lib/cache/index.js";
+import { SequelizeCache } from "../lib/db/cache.js";
+import { getLogger } from "../lib/logger/index.js";
 
 const logger = getLogger("api/index");
 

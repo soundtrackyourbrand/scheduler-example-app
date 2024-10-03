@@ -1,7 +1,7 @@
 import { inspect } from "util";
 import retry from "retry";
 import { Semaphore } from "@shopify/semaphore";
-import { getLogger } from "lib/logger";
+import { getLogger } from "../logger/index.js";
 
 const logger = getLogger("lib/soundtrack-api/client");
 const semaphore = new Semaphore(3);

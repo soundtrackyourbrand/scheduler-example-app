@@ -9,7 +9,7 @@ import {
   ZoneEvent,
 } from "../db/index.js";
 import { Api } from "../soundtrack-api/index.js";
-import { getLogger } from "lib/logger/index.js";
+import { getLogger } from "../logger/index.js";
 
 const logger = getLogger("lib/worker/index");
 

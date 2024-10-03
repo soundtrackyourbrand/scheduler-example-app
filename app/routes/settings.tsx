@@ -1,5 +1,13 @@
 import React, { useState } from "react";
 import useSWR, { mutate } from "swr";
+import pluralize from "pluralize";
+import {
+  CheckIcon,
+  ExclamationTriangleIcon,
+  ReloadIcon,
+} from "@radix-ui/react-icons";
+import { toast } from "sonner";
+import { MetaFunction } from "@remix-run/node";
 import Page from "~/components/Page";
 import {
   Command,
@@ -12,17 +20,13 @@ import { Button } from "~/components/ui/button";
 import { accountsFetcher, cacheFetcher } from "~/fetchers";
 import { useMusicLibrary } from "~/lib/MusicLibraryContext";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
-import {
-  CheckIcon,
-  ExclamationTriangleIcon,
-  ReloadIcon,
-} from "@radix-ui/react-icons";
-import { toast } from "sonner";
-import { MetaFunction } from "@remix-run/node";
 import { cn, pageTitle } from "~/lib/utils";
 import AssignableSelect from "~/components/AssignableSelect";
-import { Popover, PopoverContent } from "~/components/ui/popover";
-import { PopoverTrigger } from "@radix-ui/react-popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "~/components/ui/popover";
 
 export const meta: MetaFunction = () => {
   return [{ title: pageTitle("Settings") }];
@@ -195,7 +199,23 @@ export default function Settings() {
           Clear cache
         </Button>
       </div>
-      <p>{cache?.count ?? "No"} item cached</p>
+      <div>
+        <p>{pluralize("item", cache?.count, true)} cached</p>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={loading.includes("cacheCount")}
+          onClick={() => {
+            addLoading("cacheCount");
+            mutate("/api/v1/cache")
+              .then(() => toast("Cache count refreshed"))
+              .finally(() => removeLoading("cacheCount"));
+          }}
+        >
+          <ReloadIcon className="mr-2" />
+          Refresh count
+        </Button>
+      </div>
     </Page>
   );
 }

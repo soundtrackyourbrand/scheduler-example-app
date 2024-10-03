@@ -2,6 +2,8 @@ import React from "react";
 import { Link } from "@remix-run/react";
 import { PropsWithChildren, useCallback, useMemo, useState } from "react";
 import useSWR from "swr";
+import pluralize from "pluralize";
+import { MetaFunction } from "@remix-run/node";
 import { accountsFetcher, eventsFetcher } from "../fetchers";
 import { Button } from "~/components/ui/button";
 import DateTime from "~/components/DateTime";
@@ -10,8 +12,8 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
-import { DropdownMenuTrigger } from "@radix-ui/react-dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -21,7 +23,6 @@ import {
 } from "~/components/ui/select";
 import { AssignableDisplayData } from "~/components/AssignableDisplay";
 import Page from "~/components/Page";
-import { MetaFunction } from "@remix-run/node";
 import { pageTitle } from "~/lib/utils";
 import RepeatDisplay from "~/components/RepeatDisplay";
 import Paper from "~/components/Paper";
@@ -200,8 +201,7 @@ export default function Events() {
                 </div>
                 <div>
                   <span className="text-slate-400">
-                    {event.zones.length} zone
-                    {event.zones.length === 1 ? "" : "s"}
+                    {pluralize("zone", event.zones.length, true)}
                   </span>
                 </div>
               </div>
@@ -209,7 +209,7 @@ export default function Events() {
           );
         })}
         <div className="border-t border-t-slate-100 text-slate-300 mt-4 text-align-center pt-2 text-sm">
-          {filteredEvents.length} of {events?.length} events
+          {filteredEvents.length} of {pluralize("event", events?.length, true)}
         </div>
       </div>
     </Page>

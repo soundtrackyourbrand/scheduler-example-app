@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Key, ReactNode, useId, useState } from "react";
+import pluralize from "pluralize";
 import {
   ColumnDef,
   flexRender,
@@ -15,16 +16,6 @@ import {
   getFacetedUniqueValues,
 } from "@tanstack/react-table";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "~/components/ui/table";
-import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
-import {
   BookmarkFilledIcon,
   BookmarkIcon,
   CaretDownIcon,
@@ -34,6 +25,16 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
 } from "@radix-ui/react-icons";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "~/components/ui/table";
+import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
 import {
   Popover,
   PopoverContent,
@@ -232,7 +233,8 @@ export const DataTable = function DataTable<TData, TValue>({
       <div className="flex items-center justify-end space-x-2 mt-2">
         <div className="flex-1 text-sm text-muted-foreground">
           {table.getFilteredSelectedRowModel().rows.length} of{" "}
-          {table.getFilteredRowModel().rows.length} row(s) selected.
+          {pluralize("row", table.getFilteredRowModel().rows.length, true)}{" "}
+          selected.
         </div>
         {pagination && table.getPageCount() > 0 && (
           <div className="flex items-center space-x-2">

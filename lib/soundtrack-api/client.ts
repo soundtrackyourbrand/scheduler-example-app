@@ -87,11 +87,13 @@ async function request<T, A>(
 
   const body = JSON.stringify({ query: document, variables });
   logger.trace("GraphQL request body: " + body);
+
   const res = await fetch(process.env.SOUNDTRACK_API_URL, {
     method: "POST",
     headers: {
       Authorization: "Basic " + process.env.SOUNDTRACK_API_TOKEN,
       "Content-Type": "application/json",
+      "User-Agent": "scheduler-example-app/0.0.0",
     },
     body,
   });

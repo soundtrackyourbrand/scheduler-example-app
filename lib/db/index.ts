@@ -27,7 +27,7 @@ export const Event = _sequelize.define("Event", {
     allowNull: true,
   },
   repeat: {
-    type: DataTypes.NUMBER,
+    type: DataTypes.INTEGER,
     allowNull: true,
   },
   repeatPart: {

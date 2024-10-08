@@ -61,8 +61,8 @@ This app does not enforce any authentication, **do not put this app on the inter
 
 The app contains two moving parts as described in [Project setup](#project-setup): the user facing React app and the server. These two needs to be built separately. To produce JavaScript files that can be run with plain `node` you can run the follwing two scrips defined in `package.json`.
 
-* `pnpm build:remix` Builds the React app and puts the final output in `./build`.
-* `pnpm build:server` Builds the server and puts it in `./build-server`. This step depends on the `pnpm build:remix` step.
+- `pnpm build:remix` Builds the React app and puts the final output in `./build`.
+- `pnpm build:server` Builds the server and puts it in `./build-server`. This step depends on the `pnpm build:remix` step.
 
 After successfully running the commands above the app can be started with
 

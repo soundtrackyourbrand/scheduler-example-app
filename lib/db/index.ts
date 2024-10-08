@@ -1,12 +1,23 @@
 import { addDays, addHours, addMinutes } from "date-fns";
-import { Sequelize, DataTypes, SyncOptions } from "sequelize";
+import { Sequelize, DataTypes, SyncOptions, Options } from "sequelize";
+import { getLogger } from "../logger";
 
-// TODO: Initialize your database
-const _sequelize = new Sequelize({
-  dialect: "sqlite",
-  storage: process.env.DB_STORAGE ?? "db.sqlite",
-  logging: false,
-});
+const logger = getLogger("db/index");
+
+const uri = process.env.DB_URI;
+const commonOptions: Options = { logging: false };
+
+const _sequelize = uri
+  ? new Sequelize(uri, commonOptions)
+  : new Sequelize({
+      ...commonOptions,
+      dialect: "sqlite",
+      storage: process.env.DB_STORAGE ?? "db.sqlite",
+    });
+
+logger.info(
+  `Created Sequelize with dialect: ${_sequelize.getDialect()}, database: ${_sequelize.getDatabaseName()}`,
+);
 
 export type RepeatPart = "day" | "hour" | "minute";
 export const repeatParts: RepeatPart[] = ["day", "hour", "minute"];
@@ -127,12 +138,19 @@ Action.belongsTo(Run);
 Event.hasMany(Action, { as: "actions" });
 Action.belongsTo(Event);
 
+/**
+ * Sync the databse schema.
+ *
+ * Note: All data in the database will be dropped.
+ *
+ * @param options Options passed to the models sync call.
+ */
 export async function sync(options: SyncOptions) {
-  await Event.sync(options);
-  await ZoneEvent.sync(options);
-  await Run.sync(options);
-  await Action.sync(options);
-  await CacheEntry.sync(options);
+  const types = [Event, ZoneEvent, Run, Action, CacheEntry];
+  types.forEach(async (type) => {
+    logger.info(`Syncing table name ${type.getTableName()} ...`);
+    await type.sync(options);
+  });
 }
 
 export const sequelize = _sequelize;

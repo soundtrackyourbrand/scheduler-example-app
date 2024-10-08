@@ -51,6 +51,20 @@ cp .env.sample .env
 # Add your token to the .env file
 ```
 
+## Environment variables
+
+| Environment variable   | Default                                        | Description                                                                                              |
+| ---------------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `DB_CACHE`             | -                                              | When set to anything truthy cached values will be stored in the database.                                |
+| `DB_URI`               | -                                              | Will be passed to `new Sequelize(dbUri)` when set.                                                       |
+| `DB_STORAGE`           | `db.sqlite`                                    | Used in combination with the default databse setup. The name of the file that `sqlite` uses as database. |
+| `SYNC_DB`              | -                                              | When set to anything truthy will sync all database tables. **Note: All your data will be deleted**.      |
+| `LOG_LEVEL`            | `info` when `NODE_ENV=production` else `debug` | The log level passed to `pino({ level: logLevel })`.                                                     |
+| `SOUNDTRACK_API_URL`   | -                                              | The url of the Soundtrack API.                                                                           |
+| `SOUNDTRACK_API_TOKEN` | -                                              | The Soundtrack API token, used in all requests towards the Soundtrack API.                               |
+| `REQUEST_LOG`          | -                                              | when set the anything truthy will enable http request logs.                                              |
+| `WORKER_INTERVAL`      | `60`                                           | The worker check interval in seconds.                                                                    |
+
 ## Deployment
 
 ### Security

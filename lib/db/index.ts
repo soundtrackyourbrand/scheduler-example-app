@@ -1,6 +1,6 @@
 import { addDays, addHours, addMinutes } from "date-fns";
 import { Sequelize, DataTypes, SyncOptions, Options } from "sequelize";
-import { getLogger } from "../logger";
+import { getLogger } from "../logger/index.js";
 
 const logger = getLogger("db/index");
 

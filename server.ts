@@ -1,24 +1,15 @@
+import "./lib/env.js";
+import { getLogger } from "./lib/logger/index.js";
 import { createRequestHandler } from "@remix-run/express";
 import type { ServerBuild } from "@remix-run/node";
 import express from "express";
-import dotenv from "dotenv";
 import pinoHttp from "pino-http";
 
 import { sync } from "./lib/db/index.js";
 import worker from "./lib/worker/index.js";
 import apiRouter from "./api/index.js";
-import { getLogger } from "./lib/logger/index.js";
 
 const logger = getLogger("server");
-logger.info("Starting in NODE_ENV=" + process.env.NODE_ENV);
-
-// The dev server parses keys in non-production
-if (process.env.NODE_ENV === "production") {
-  const config = dotenv.config();
-  logger.info(
-    "Parsed .env file with keys: " + Object.keys(config.parsed ?? {}).join(","),
-  );
-}
 
 const app = express();
 if (process.env.REQUEST_LOG) {

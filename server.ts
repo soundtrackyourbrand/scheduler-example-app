@@ -1,5 +1,4 @@
 import "./lib/env.js";
-import { getLogger } from "./lib/logger/index.js";
 import { createRequestHandler } from "@remix-run/express";
 import type { ServerBuild } from "@remix-run/node";
 import express from "express";
@@ -8,6 +7,7 @@ import pinoHttp from "pino-http";
 import { sync } from "./lib/db/index.js";
 import worker from "./lib/worker/index.js";
 import apiRouter from "./api/index.js";
+import { getLogger } from "./lib/logger/index.js";
 
 const logger = getLogger("server");
 

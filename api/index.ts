@@ -11,6 +11,7 @@ import {
   Event,
   Run,
   ZoneEvent,
+  User,
 } from "../lib/db/index.js";
 import { Model } from "sequelize";
 import { InMemoryCache } from "../lib/cache/index.js";
@@ -353,6 +354,11 @@ const cache = process.env["DB_CACHE"]
 
 const soundtrackApi = new Api({ cache });
 
+router.get("/auth/user", async (req, res) => {
+  const user = await User.findByPk(0);
+  res.sendStatus(user ? 200 : 404);
+});
+
 router.post("/auth/login", async (req, res) => {
   if (soundtrackApi.mode !== "user") {
     res.status(409).send("Not in user mode");
@@ -365,7 +371,7 @@ router.post("/auth/login", async (req, res) => {
   }
   try {
     const loginResponse = await soundtrackApi.login(email, password);
-    console.log(loginResponse);
+    await User.upsert({ key: 0, ...loginResponse });
     res.sendStatus(200);
   } catch (e) {
     logger.error("Failed to login: " + e);

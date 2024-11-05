@@ -13,7 +13,7 @@ type QueryResponse<T> = {
 
 type TokenType = "Bearer" | "Basic";
 
-type RunOptions = {
+export type RunOptions = {
   errorPolicy?: "all" | "none";
   token?: string;
   tokenType?: TokenType;

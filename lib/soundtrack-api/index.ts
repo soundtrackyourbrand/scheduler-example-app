@@ -1,4 +1,4 @@
-import { runMutation, runQuery } from "./client.js";
+import { runMutation, RunOptions, runQuery } from "./client.js";
 import {
   Account,
   AccountLibrary,
@@ -45,6 +45,34 @@ export class Api {
     }
 
     logger.info("Creating Soundtrack API client in mode: " + this.mode);
+  }
+
+  private async getUserToken(): Promise<string | null> {
+    if (this.mode === "token") return null;
+    if (!this.tokenSource) {
+      throw new Error("Token source is required in user mode");
+    }
+
+    const token = await this.tokenSource.getToken();
+    if (token) {
+      return token;
+    }
+    const refreshToken = await this.tokenSource.getRefreshToken();
+    if (!refreshToken) {
+      return null;
+    }
+    const loginResponse = await this.refreshAccessToken(refreshToken);
+    await this.tokenSource.updateToken(loginResponse);
+    return loginResponse.token;
+  }
+
+  private async runOptions(options: RunOptions = {}): Promise<RunOptions> {
+    const userToken = await this.getUserToken();
+    const opts: RunOptions = { ...options, token: userToken ?? undefined };
+    if (userToken) {
+      opts.tokenType = "Bearer";
+    }
+    return opts;
   }
 
   async cached<T>(key: string, skipCache: boolean): Promise<T | undefined> {
@@ -100,6 +128,7 @@ export class Api {
     const res = await runQuery<AccountsQuery, AccountsQueryArgs>(
       accountsQuery,
       { cursor },
+      await this.runOptions(),
     );
     const accounts = acc.concat(
       res.data.me.accounts.edges.map(({ node }) => node),
@@ -114,9 +143,11 @@ export class Api {
 
   async getAccount(accountId: string): Promise<Account> {
     logger.info(`Getting account ${accountId}`);
-    const res = await runQuery<AccountQuery, AccountQueryArgs>(accountQuery, {
-      id: accountId,
-    });
+    const res = await runQuery<AccountQuery, AccountQueryArgs>(
+      accountQuery,
+      { id: accountId },
+      await this.runOptions(),
+    );
     return res.data.account;
   }
 
@@ -144,10 +175,8 @@ export class Api {
     );
     const res = await runQuery<AccountZonesQuery, AccountZonesQueryArgs>(
       accountZonesQuery,
-      {
-        id: accountId,
-        cursor,
-      },
+      { id: accountId, cursor },
+      await this.runOptions(),
     );
     const zoneFn = toZoneFn(accountId);
     const zones: Zone[] = acc.concat(
@@ -163,9 +192,11 @@ export class Api {
 
   async getZone(zoneId: string): Promise<Zone> {
     logger.info(`Getting zone ${zoneId}`);
-    const res = await runQuery<ZoneQuery, ZoneQueryArgs>(zoneQuery, {
-      id: zoneId,
-    });
+    const res = await runQuery<ZoneQuery, ZoneQueryArgs>(
+      zoneQuery,
+      { id: zoneId },
+      await this.runOptions(),
+    );
     return res.data.soundZone;
   }
 
@@ -180,10 +211,11 @@ export class Api {
 
   async assignMusic(zoneId: string, playFromId: string): Promise<void> {
     logger.info(`Assigning ${playFromId} to ${zoneId}`);
-    await runMutation<AssignMutation, AssignMutationArgs>(assignMutation, {
-      zoneId,
-      playFromId,
-    });
+    await runMutation<AssignMutation, AssignMutationArgs>(
+      assignMutation,
+      { zoneId, playFromId },
+      await this.runOptions(),
+    );
   }
 
   async getAssignable(assignableId: string): Promise<Assignable | null> {
@@ -191,7 +223,7 @@ export class Api {
     const res = await runQuery<AssignableQuery, AssignableQueryArgs>(
       assignableQuery,
       { assignableId },
-      { errorPolicy: "all" },
+      await this.runOptions({ errorPolicy: "all" }),
     );
     if (!res.data) {
       logger.info("Failed to get assignable: " + res.errors);
@@ -225,13 +257,17 @@ export class Api {
     opts: LibraryPageOpts,
     acc: AccountLibrary,
   ): Promise<AccountLibrary> {
-    const res = await runQuery<LibraryQuery, LibraryQueryArgs>(libraryQuery, {
-      accountId,
-      playlists: opts.playlists !== false,
-      playlistCursor: libraryOptToCursor(opts.playlists),
-      schedules: opts.schedules !== false,
-      scheduleCursor: libraryOptToCursor(opts.schedules),
-    });
+    const res = await runQuery<LibraryQuery, LibraryQueryArgs>(
+      libraryQuery,
+      {
+        accountId,
+        playlists: opts.playlists !== false,
+        playlistCursor: libraryOptToCursor(opts.playlists),
+        schedules: opts.schedules !== false,
+        scheduleCursor: libraryOptToCursor(opts.schedules),
+      },
+      await this.runOptions(),
+    );
 
     const musicLibrary = res.data.account.musicLibrary;
     const playlists: Assignable[] =
@@ -360,22 +396,29 @@ type AccountsQueryArgs = {
   cursor: string | null;
 };
 
+const meAccounts = `
+accounts(first: 100, after: $cursor) {
+  pageInfo {
+    hasNextPage
+    endCursor
+  }
+  edges {
+    node {
+      id
+      businessName
+    }
+  }
+}
+`;
+
 const accountsQuery = `
 query SchedulerAccounts($cursor: String) {
   me {
+    ... on User {
+      ${meAccounts}
+    }
     ... on PublicAPIClient {
-      accounts(first: 100, after: $cursor) {
-        pageInfo {
-          hasNextPage
-          endCursor
-        }
-        edges {
-          node {
-            id
-            businessName
-          }
-        }
-      }
+      ${meAccounts}
     }
   }
 }

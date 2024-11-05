@@ -16,6 +16,7 @@ export type TokenSource = {
   getToken: () => Promise<string | null>;
   getRefreshToken: () => Promise<string | null>;
   updateToken(loginResponse: LoginResponse): Promise<void>;
+  logout: () => Promise<void>;
 };
 
 type ApiOptions = {

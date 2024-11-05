@@ -380,6 +380,16 @@ router.post("/auth/login", async (req, res) => {
   }
 });
 
+router.post("/auth/logout", async (req, res) => {
+  if (soundtrackApi.mode !== "user") {
+    res.status(409).send("Not in user mode");
+    return;
+  }
+  tokenSource.logout();
+  cache.clear();
+  res.sendStatus(200);
+});
+
 router.get("/zones/:zoneId", async (req, res) => {
   try {
     const zone = await soundtrackApi.getZone(req.params.zoneId);

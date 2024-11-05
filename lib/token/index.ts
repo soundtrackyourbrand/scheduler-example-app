@@ -60,6 +60,11 @@ class Source {
     const expiresAt = addMinutes(new Date(), 2);
     await User.upsert({ key: 0, ...loginResponse, expiresAt });
   }
+
+  async logout() {
+    logger.info("Logging out");
+    await User.destroy({ where: { key: 0 } });
+  }
 }
 const tokenSource: TokenSource = new Source();
 

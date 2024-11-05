@@ -11,9 +11,13 @@ type QueryResponse<T> = {
   errors?: unknown[];
 };
 
+type TokenType = "Bearer" | "Basic";
+
 type RunOptions = {
   errorPolicy?: "all" | "none";
   token?: string;
+  tokenType?: TokenType;
+  unauthenticated?: boolean;
 };
 
 const defaultOpts = {} as RunOptions;
@@ -76,25 +80,33 @@ async function request<T, A>(
   variables: A,
   options?: RunOptions,
 ): Promise<QueryResponse<T>> {
+  const opts = options ?? defaultOpts;
+
   if (!process.env.SOUNDTRACK_API_URL) {
     throw new Error("Environment variable SOUNDTRACK_API_URL is not set");
   }
-  if (!process.env.SOUNDTRACK_API_TOKEN) {
-    throw new Error("Environment variable SOUNDTRACK_API_TOKEN is not set");
-  }
 
-  const opts = options ?? defaultOpts;
+  const token = opts.token ?? process.env.SOUNDTRACK_API_TOKEN;
+  if (!token && !opts.unauthenticated) {
+    throw new Error(
+      "No token provided for authenticated request, either set the SOUNDTRACK_API_TOKEN environment variable or pass it as an option",
+    );
+  }
 
   const body = JSON.stringify({ query: document, variables });
   logger.trace("GraphQL request body: " + body);
 
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
+    "User-Agent": "scheduler-example-app/0.0.0",
+  };
+  if (token) {
+    headers["Authorization"] = (opts.tokenType ?? "Basic") + " " + token;
+  }
+
   const res = await fetch(process.env.SOUNDTRACK_API_URL, {
     method: "POST",
-    headers: {
-      Authorization: "Basic " + process.env.SOUNDTRACK_API_TOKEN,
-      "Content-Type": "application/json",
-      "User-Agent": "scheduler-example-app/0.0.0",
-    },
+    headers,
     body,
   });
 

@@ -93,3 +93,8 @@ export type AccountLibrary = {
 export type CacheMetadata = {
   count: number;
 };
+
+export type AuthMode = {
+  mode: "user" | "token";
+  loggedIn: boolean;
+};

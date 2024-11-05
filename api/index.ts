@@ -355,9 +355,9 @@ const cache = process.env["DB_CACHE"]
 
 const soundtrackApi = new Api({ cache, tokenSource });
 
-router.get("/auth/user", async (req, res) => {
+router.get("/auth/mode", async (req, res) => {
   const user = await User.findByPk(0);
-  res.sendStatus(user ? 200 : 404);
+  res.json({ mode: soundtrackApi.mode, loggedIn: !!user });
 });
 
 router.post("/auth/login", async (req, res) => {
@@ -373,6 +373,7 @@ router.post("/auth/login", async (req, res) => {
   try {
     const loginResponse = await soundtrackApi.login(email, password);
     await tokenSource.updateToken(loginResponse);
+    await cache.clear();
     res.sendStatus(200);
   } catch (e) {
     logger.error("Failed to login: " + e);

@@ -17,6 +17,7 @@ import { Model } from "sequelize";
 import { InMemoryCache } from "../lib/cache/index.js";
 import { SequelizeCache } from "../lib/db/cache.js";
 import { getLogger } from "../lib/logger/index.js";
+import tokenSource from "lib/token/index.js";
 
 const logger = getLogger("api/index");
 
@@ -352,7 +353,7 @@ const cache = process.env["DB_CACHE"]
   ? new SequelizeCache()
   : new InMemoryCache();
 
-const soundtrackApi = new Api({ cache });
+const soundtrackApi = new Api({ cache, tokenSource });
 
 router.get("/auth/user", async (req, res) => {
   const user = await User.findByPk(0);
@@ -371,7 +372,7 @@ router.post("/auth/login", async (req, res) => {
   }
   try {
     const loginResponse = await soundtrackApi.login(email, password);
-    await User.upsert({ key: 0, ...loginResponse });
+    await tokenSource.updateToken(loginResponse);
     res.sendStatus(200);
   } catch (e) {
     logger.error("Failed to login: " + e);

@@ -12,8 +12,15 @@ import { getLogger } from "../logger/index.js";
 
 const logger = getLogger("lib/soundtrack-api/index");
 
+export type TokenSource = {
+  getToken: () => Promise<string | null>;
+  getRefreshToken: () => Promise<string | null>;
+  updateToken(loginResponse: LoginResponse): Promise<void>;
+};
+
 type ApiOptions = {
   cache?: Cache;
+  tokenSource?: TokenSource;
 };
 
 type ApiMode = "token" | "user";
@@ -25,11 +32,18 @@ function deserialize<T>(value: string | undefined): T | undefined {
 
 export class Api {
   cache: Cache | undefined;
+  tokenSource: TokenSource | undefined;
   mode: ApiMode;
 
   constructor(opts?: ApiOptions) {
     this.cache = opts?.cache;
+    this.tokenSource = opts?.tokenSource;
     this.mode = process.env.SOUNDTRACK_API_TOKEN ? "token" : "user";
+
+    if (this.mode === "user" && !this.tokenSource) {
+      throw new Error("Token source is required in user mode");
+    }
+
     logger.info("Creating Soundtrack API client in mode: " + this.mode);
   }
 

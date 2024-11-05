@@ -67,12 +67,12 @@ async function run<T, A>(
       logger.debug(`Attempt ${attempt}`);
       try {
         const response = await request<T, A>(document, variables, options);
-        token.release();
         resolve(response);
       } catch (e) {
         if (operation.retry(e as Error)) return;
-        token.release();
         reject(operation.mainError());
+      } finally {
+        token.release();
       }
     });
   });

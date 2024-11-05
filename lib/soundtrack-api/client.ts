@@ -69,13 +69,26 @@ async function run<T, A>(
         const response = await request<T, A>(document, variables, options);
         resolve(response);
       } catch (e) {
-        if (operation.retry(e as Error)) return;
-        reject(operation.mainError());
+        if (e instanceof TokenError) {
+          operation.stop();
+          reject(e);
+        } else if (operation.retry(e as Error)) {
+          // Retry operation
+        } else {
+          reject(operation.mainError());
+        }
       } finally {
         token.release();
       }
     });
   });
+}
+
+class TokenError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "TokenError";
+  }
 }
 
 async function request<T, A>(
@@ -91,7 +104,7 @@ async function request<T, A>(
 
   const token = opts.token ?? process.env.SOUNDTRACK_API_TOKEN;
   if (!token && !opts.unauthenticated) {
-    throw new Error(
+    throw new TokenError(
       "No token provided for authenticated request, either set the SOUNDTRACK_API_TOKEN environment variable or pass it as an option",
     );
   }

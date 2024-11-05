@@ -36,7 +36,6 @@ export type Assignable = {
 };
 
 export type LoginResponse = {
-  userId: string;
   token: string;
   expiresAt: Date;
   refreshToken: string;

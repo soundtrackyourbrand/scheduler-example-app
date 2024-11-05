@@ -51,6 +51,22 @@ export class Api {
     };
   }
 
+  async refreshAccessToken(refreshToken: string): Promise<LoginResponse> {
+    logger.info(`Refreshing access token`);
+    const res = await runMutation<
+      RefreshAccessTokenMutation,
+      RefreshAccessTokenMutationArgs
+    >(
+      refreshAccessTokenMutation,
+      { refreshToken },
+      { unauthenticated: true, retry: { retries: 0 } },
+    );
+    return {
+      ...res.data.refreshLogin,
+      expiresAt: new Date(res.data.refreshLogin.expiresAt),
+    };
+  }
+
   async getAccounts(skipCache: boolean = false): Promise<Account[]> {
     logger.info("Getting accounts");
     const key = "accounts";
@@ -274,7 +290,6 @@ function toAssignable(item: LibraryItem): Assignable {
 
 type LoginMutation = {
   loginUser: {
-    userId: string;
     token: string;
     expiresAt: string;
     refreshToken: string;
@@ -287,9 +302,29 @@ type LoginMutationArgs = {
 };
 
 const loginMutation = `
-mutation SchedulerLogin($email:String!, $password:String!) {
+mutation SchedulerLogin($email: String!, $password: String!) {
   loginUser(input: { email: $email, password: $password }) {
-    userId
+    token
+    expiresAt
+    refreshToken
+  }
+}`;
+
+type RefreshAccessTokenMutation = {
+  refreshLogin: {
+    token: string;
+    expiresAt: string;
+    refreshToken: string;
+  };
+};
+
+type RefreshAccessTokenMutationArgs = {
+  refreshToken: string;
+};
+
+const refreshAccessTokenMutation = `
+mutation SchedulerRefreshLogin($refreshToken: String!) {
+  refreshLogin(input: { refreshToken: $refreshToken }) {
     token
     expiresAt
     refreshToken

@@ -350,7 +350,28 @@ router.get("/events/:eventId/actions", async (req, res) => {
 const cache = process.env["DB_CACHE"]
   ? new SequelizeCache()
   : new InMemoryCache();
+
 const soundtrackApi = new Api({ cache });
+
+router.post("/auth/login", async (req, res) => {
+  if (soundtrackApi.mode !== "user") {
+    res.status(409).send("Not in user mode");
+    return;
+  }
+  const { email, password } = req.body;
+  if (!email || !password) {
+    res.status(400).send("Missing email or password");
+    return;
+  }
+  try {
+    const loginResponse = await soundtrackApi.login(email, password);
+    console.log(loginResponse);
+    res.sendStatus(200);
+  } catch (e) {
+    logger.error("Failed to login: " + e);
+    res.sendStatus(500);
+  }
+});
 
 router.get("/zones/:zoneId", async (req, res) => {
   try {

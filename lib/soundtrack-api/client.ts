@@ -1,5 +1,5 @@
 import { inspect } from "util";
-import retry from "retry";
+import retry, { OperationOptions } from "retry";
 import { Semaphore } from "@shopify/semaphore";
 import { getLogger } from "../logger/index.js";
 
@@ -18,6 +18,7 @@ type RunOptions = {
   token?: string;
   tokenType?: TokenType;
   unauthenticated?: boolean;
+  retry?: OperationOptions;
 };
 
 const defaultOpts = {} as RunOptions;
@@ -58,7 +59,9 @@ async function run<T, A>(
   options?: RunOptions,
 ): Promise<QueryResponse<T>> {
   const token = await semaphore.acquire();
-  const operation = retry.operation({ minTimeout: 10 * 1000 });
+  const operation = retry.operation(
+    options?.retry ?? { minTimeout: 10 * 1000 },
+  );
   return new Promise((resolve, reject) => {
     operation.attempt(async (attempt: number) => {
       logger.debug(`Attempt ${attempt}`);

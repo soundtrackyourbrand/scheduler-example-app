@@ -4,6 +4,7 @@ import {
   AccountLibrary,
   AccountZone,
   Assignable,
+  LoginResponse,
   Zone,
 } from "./types.js";
 import { Cache } from "../cache/index.js";
@@ -15,6 +16,8 @@ type ApiOptions = {
   cache?: Cache;
 };
 
+type ApiMode = "token" | "user";
+
 function deserialize<T>(value: string | undefined): T | undefined {
   if (value === undefined) return;
   return JSON.parse(value);
@@ -22,14 +25,30 @@ function deserialize<T>(value: string | undefined): T | undefined {
 
 export class Api {
   cache: Cache | undefined;
+  mode: ApiMode;
 
   constructor(opts?: ApiOptions) {
     this.cache = opts?.cache;
+    this.mode = process.env.SOUNDTRACK_API_TOKEN ? "token" : "user";
+    logger.info("Creating Soundtrack API client in mode: " + this.mode);
   }
 
   async cached<T>(key: string, skipCache: boolean): Promise<T | undefined> {
     if (!this.cache || skipCache) return Promise.resolve(undefined);
     return await this.cache.get(key).then(deserialize<T>);
+  }
+
+  async login(email: string, password: string): Promise<LoginResponse> {
+    logger.info(`Logging in user ${email}`);
+    const res = await runMutation<LoginMutation, LoginMutationArgs>(
+      loginMutation,
+      { email, password },
+      { unauthenticated: true, retry: { retries: 0 } },
+    );
+    return {
+      ...res.data.loginUser,
+      expiresAt: new Date(res.data.loginUser.expiresAt),
+    };
   }
 
   async getAccounts(skipCache: boolean = false): Promise<Account[]> {
@@ -252,6 +271,30 @@ function toAssignable(item: LibraryItem): Assignable {
     updatedAt: item.updatedAt,
   };
 }
+
+type LoginMutation = {
+  loginUser: {
+    userId: string;
+    token: string;
+    expiresAt: string;
+    refreshToken: string;
+  };
+};
+
+type LoginMutationArgs = {
+  email: string;
+  password: string;
+};
+
+const loginMutation = `
+mutation SchedulerLogin($email:String!, $password:String!) {
+  loginUser(input: { email: $email, password: $password }) {
+    userId
+    token
+    expiresAt
+    refreshToken
+  }
+}`;
 
 type AccountsQuery = {
   me: {

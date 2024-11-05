@@ -3,7 +3,6 @@ import { TokenSource } from "lib/soundtrack-api/index.js";
 import { LoginResponse } from "lib/soundtrack-api/types.js";
 import { getLogger } from "lib/logger/index.js";
 import { User } from "lib/db/index.js";
-import { addMinutes } from "date-fns";
 
 const logger = getLogger("lib/token");
 const semaphore = new Semaphore(1);
@@ -24,9 +23,10 @@ class Source {
 
       const expiresAt = user.get("expiresAt") as Date;
       const now = new Date();
-      if (expiresAt.getTime() - oneMinute < now.getTime()) {
+      const remaining = expiresAt.getTime() - now.getTime();
+      if (remaining < oneMinute) {
         logger.info(
-          `Token is expired. expiresAt: ${expiresAt.toISOString()}, now: ${now.toISOString()}`,
+          `Token is expired. Expires at: ${expiresAt.toISOString()}, now: ${now.toISOString()}`,
         );
         return null;
       }
@@ -55,10 +55,10 @@ class Source {
   }
 
   async updateToken(loginResponse: LoginResponse) {
-    logger.info("Updating token");
-    // TODO: Remove expiresAt hack
-    const expiresAt = addMinutes(new Date(), 2);
-    await User.upsert({ key: 0, ...loginResponse, expiresAt });
+    logger.info(
+      "Updating token, expires at " + loginResponse.expiresAt.toISOString(),
+    );
+    await User.upsert({ key: 0, ...loginResponse });
   }
 
   async logout() {

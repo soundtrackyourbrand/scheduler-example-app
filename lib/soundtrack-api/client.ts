@@ -1,5 +1,5 @@
 import { inspect } from "util";
-import retry from "retry";
+import retry, { OperationOptions } from "retry";
 import { Semaphore } from "@shopify/semaphore";
 import { getLogger } from "../logger/index.js";
 
@@ -11,9 +11,14 @@ type QueryResponse<T> = {
   errors?: unknown[];
 };
 
-type RunOptions = {
+type TokenType = "Bearer" | "Basic";
+
+export type RunOptions = {
   errorPolicy?: "all" | "none";
   token?: string;
+  tokenType?: TokenType;
+  unauthenticated?: boolean;
+  retry?: OperationOptions;
 };
 
 const defaultOpts = {} as RunOptions;
@@ -54,21 +59,36 @@ async function run<T, A>(
   options?: RunOptions,
 ): Promise<QueryResponse<T>> {
   const token = await semaphore.acquire();
-  const operation = retry.operation({ minTimeout: 10 * 1000 });
+  const operation = retry.operation(
+    options?.retry ?? { minTimeout: 10 * 1000 },
+  );
   return new Promise((resolve, reject) => {
     operation.attempt(async (attempt: number) => {
       logger.debug(`Attempt ${attempt}`);
       try {
         const response = await request<T, A>(document, variables, options);
-        token.release();
         resolve(response);
       } catch (e) {
-        if (operation.retry(e as Error)) return;
+        if (e instanceof TokenError) {
+          operation.stop();
+          reject(e);
+        } else if (operation.retry(e as Error)) {
+          // Retry operation
+        } else {
+          reject(operation.mainError());
+        }
+      } finally {
         token.release();
-        reject(operation.mainError());
       }
     });
   });
+}
+
+class TokenError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "TokenError";
+  }
 }
 
 async function request<T, A>(
@@ -76,25 +96,33 @@ async function request<T, A>(
   variables: A,
   options?: RunOptions,
 ): Promise<QueryResponse<T>> {
+  const opts = options ?? defaultOpts;
+
   if (!process.env.SOUNDTRACK_API_URL) {
     throw new Error("Environment variable SOUNDTRACK_API_URL is not set");
   }
-  if (!process.env.SOUNDTRACK_API_TOKEN) {
-    throw new Error("Environment variable SOUNDTRACK_API_TOKEN is not set");
-  }
 
-  const opts = options ?? defaultOpts;
+  const token = opts.token ?? process.env.SOUNDTRACK_API_TOKEN;
+  if (!token && !opts.unauthenticated) {
+    throw new TokenError(
+      "No token provided for authenticated request, either set the SOUNDTRACK_API_TOKEN environment variable or pass it as an option",
+    );
+  }
 
   const body = JSON.stringify({ query: document, variables });
   logger.trace("GraphQL request body: " + body);
 
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    "User-Agent": "scheduler-example-app/0.0.0",
+  };
+  if (token) {
+    headers["Authorization"] = (opts.tokenType ?? "Basic") + " " + token;
+  }
+
   const res = await fetch(process.env.SOUNDTRACK_API_URL, {
     method: "POST",
-    headers: {
-      Authorization: "Basic " + process.env.SOUNDTRACK_API_TOKEN,
-      "Content-Type": "application/json",
-      "User-Agent": "scheduler-example-app/0.0.0",
-    },
+    headers,
     body,
   });
 

@@ -11,11 +11,13 @@ import {
   Event,
   Run,
   ZoneEvent,
+  User,
 } from "../lib/db/index.js";
 import { Model } from "sequelize";
 import { InMemoryCache } from "../lib/cache/index.js";
 import { SequelizeCache } from "../lib/db/cache.js";
 import { getLogger } from "../lib/logger/index.js";
+import tokenSource from "lib/token/index.js";
 
 const logger = getLogger("api/index");
 
@@ -350,7 +352,49 @@ router.get("/events/:eventId/actions", async (req, res) => {
 const cache = process.env["DB_CACHE"]
   ? new SequelizeCache()
   : new InMemoryCache();
-const soundtrackApi = new Api({ cache });
+
+const soundtrackApi = new Api({ cache, tokenSource });
+
+router.get("/auth/mode", async (req, res) => {
+  const mode = soundtrackApi.mode;
+  if (mode === "user") {
+    const user = await User.findByPk(0);
+    res.json({ mode, loggedIn: !!user });
+  } else {
+    res.json({ mode, loggedIn: false });
+  }
+});
+
+router.post("/auth/login", async (req, res) => {
+  if (soundtrackApi.mode !== "user") {
+    res.status(409).send("Not in user mode");
+    return;
+  }
+  const { email, password } = req.body;
+  if (!email || !password) {
+    res.status(400).send("Missing email or password");
+    return;
+  }
+  try {
+    const loginResponse = await soundtrackApi.login(email, password);
+    await tokenSource.updateToken(loginResponse);
+    await cache.clear();
+    res.sendStatus(200);
+  } catch (e) {
+    logger.error("Failed to login: " + e);
+    res.sendStatus(500);
+  }
+});
+
+router.post("/auth/logout", async (req, res) => {
+  if (soundtrackApi.mode !== "user") {
+    res.status(409).send("Not in user mode");
+    return;
+  }
+  tokenSource.logout();
+  cache.clear();
+  res.sendStatus(200);
+});
 
 router.get("/zones/:zoneId", async (req, res) => {
   try {

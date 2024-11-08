@@ -119,6 +119,16 @@ export const CacheEntry = _sequelize.define("CacheEntry", {
   value: DataTypes.TEXT,
 });
 
+export const User = _sequelize.define("User", {
+  key: {
+    type: DataTypes.NUMBER,
+    primaryKey: true,
+  },
+  token: DataTypes.STRING,
+  expiresAt: DataTypes.DATE,
+  refreshToken: DataTypes.STRING,
+});
+
 // Relations
 // =========
 
@@ -146,7 +156,7 @@ Action.belongsTo(Event);
  * @param options Options passed to the models sync call.
  */
 export async function sync(options: SyncOptions) {
-  const types = [Event, ZoneEvent, Run, Action, CacheEntry];
+  const types = [Event, ZoneEvent, Run, Action, CacheEntry, User];
   types.forEach(async (type) => {
     logger.info(`Syncing table name ${type.getTableName()} ...`);
     await type.sync(options);

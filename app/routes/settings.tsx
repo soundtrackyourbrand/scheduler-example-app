@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import useSWR, { mutate } from "swr";
 import pluralize from "pluralize";
 import {
@@ -17,7 +17,7 @@ import {
   CommandList,
 } from "~/components/ui/command";
 import { Button } from "~/components/ui/button";
-import { accountsFetcher, cacheFetcher } from "~/fetchers";
+import { accountsFetcher, authModeFetcher, cacheFetcher } from "~/fetchers";
 import { useMusicLibrary } from "~/lib/MusicLibraryContext";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { cn, pageTitle } from "~/lib/utils";
@@ -27,6 +27,9 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "~/components/ui/popover";
+import { Input } from "~/components/ui/input";
+import { Label } from "~/components/ui/label";
+import useSWRMutation from "swr/mutation";
 
 export const meta: MetaFunction = () => {
   return [{ title: pageTitle("Settings") }];
@@ -35,6 +38,7 @@ export const meta: MetaFunction = () => {
 export default function Settings() {
   const { data: accounts } = useSWR("/api/v1/accounts", accountsFetcher);
   const { data: cache } = useSWR("/api/v1/cache", cacheFetcher);
+  const { data: authMode } = useSWR("/api/v1/auth/mode", authModeFetcher);
   const [loading, setLoading] = useState<string[]>([]);
   const { libraryId, setLibraryId } = useMusicLibrary();
   const selectedAccount = libraryId
@@ -216,6 +220,177 @@ export default function Settings() {
           Refresh count
         </Button>
       </div>
+      <div className="border-t border-slate-200 my-4"></div>
+      <h1>Authentication</h1>
+      <p className="text-sm text-slate-400 mb-3">
+        This app is using {authMode?.mode} authentication.
+      </p>
+      <div className="max-w-screen-sm">
+        {authMode?.mode === "token" && (
+          <p>
+            With token authentication this app is using a Soundtrack API token
+            to make requests to the Soundtrack API.
+          </p>
+        )}
+        {authMode?.mode === "user" && (
+          <>
+            <LoggedInAlert loggedIn={authMode.loggedIn} className="my-4" />
+            {!authMode.loggedIn && <UserLogin />}
+            {authMode.loggedIn && <UserLogout />}
+          </>
+        )}
+      </div>
     </Page>
+  );
+}
+
+function LoggedInAlert({
+  loggedIn,
+  className,
+}: {
+  loggedIn: boolean;
+  className?: string;
+}) {
+  return (
+    <Alert className={className} variant={loggedIn ? "default" : "destructive"}>
+      <AlertTitle>
+        {loggedIn ? "Logged in, all set!" : "Not logged in"}
+      </AlertTitle>
+      {!loggedIn && (
+        <AlertDescription>
+          Until you are logged in you will not be able to access the Soundtrack
+          API.
+        </AlertDescription>
+      )}
+    </Alert>
+  );
+}
+
+type LoginData = {
+  email: string;
+  password: string;
+};
+
+async function userLogin(
+  url: string,
+  { arg }: { arg: LoginData },
+): Promise<void> {
+  return await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(arg),
+  }).then((res) => {
+    if (!res.ok) {
+      throw new Error("Login failed");
+    }
+  });
+}
+
+function UserLogin() {
+  const { trigger } = useSWRMutation("/api/v1/auth/login", userLogin);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [data, setData] = useState<LoginData>({ email: "", password: "" });
+  const [error, setError] = useState<string | null>(null);
+
+  const handleLogin = useCallback(async (data: LoginData) => {
+    if (loading) return;
+    setError(null);
+    try {
+      await trigger(data);
+      mutate("/api/v1/auth/mode");
+      toast("Logged in");
+    } catch (e) {
+      console.error(e);
+      setError("Login failed");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return (
+    <>
+      <h1>Log in</h1>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleLogin(data);
+        }}
+        className="max-w-80"
+      >
+        <Label htmlFor="email-input">Email</Label>
+        <Input
+          id="email-input"
+          value={data.email}
+          onChange={(e) => setData((d) => ({ ...d, email: e.target.value }))}
+        />
+        <Label htmlFor="password-input">Password</Label>
+        <Input
+          id="password-input"
+          type="password"
+          value={data.password}
+          onChange={(e) => setData((d) => ({ ...d, password: e.target.value }))}
+        />
+        <div className="mt-4">
+          <Button type="submit" disabled={loading}>
+            Log in
+          </Button>
+        </div>
+      </form>
+      {error && (
+        <Alert variant="destructive" className="mt-4">
+          <AlertTitle>Login failed</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+    </>
+  );
+}
+
+async function userLogout(url: string): Promise<void> {
+  return await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  }).then((res) => {
+    if (!res.ok) {
+      throw new Error("Logout failed");
+    }
+  });
+}
+
+function UserLogout() {
+  const { trigger } = useSWRMutation("/api/v1/auth/logout", userLogout);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleLogout = useCallback(async () => {
+    setError(null);
+    try {
+      await trigger();
+      mutate("/api/v1/auth/mode");
+      toast("Logged out");
+    } catch (e) {
+      console.error(e);
+      setError("Logout failed");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return (
+    <>
+      <Button onClick={handleLogout} disabled={loading}>
+        Log out
+      </Button>
+      {error && (
+        <Alert variant="destructive" className="mt-4">
+          <AlertTitle>Login failed</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+    </>
   );
 }

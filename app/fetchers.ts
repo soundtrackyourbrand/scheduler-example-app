@@ -5,6 +5,7 @@ import {
   Account,
   AccountLibrary,
   Assignable,
+  AuthMode,
   CacheMetadata,
   Event,
   EventAction,
@@ -82,6 +83,7 @@ export const assignableFetcher: Fetcher<Assignable, string> = (url) =>
   defaultFetcher(url).then(toAssignable);
 
 export const cacheFetcher: Fetcher<CacheMetadata, string> = defaultFetcher;
+export const authModeFetcher: Fetcher<AuthMode, string> = defaultFetcher;
 
 export const errorHandler = async (res: Response) => {
   if (!res.ok) {

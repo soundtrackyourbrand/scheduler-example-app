@@ -34,3 +34,9 @@ export type Assignable = {
   createdAt: string;
   updatedAt: string;
 };
+
+export type LoginResponse = {
+  token: string;
+  expiresAt: Date;
+  refreshToken: string;
+};

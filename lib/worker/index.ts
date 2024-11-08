@@ -10,6 +10,7 @@ import {
 } from "../db/index.js";
 import { Api } from "../soundtrack-api/index.js";
 import { getLogger } from "../logger/index.js";
+import tokenSource from "lib/token/index.js";
 
 const logger = getLogger("lib/worker/index");
 
@@ -17,7 +18,7 @@ type WorkerOptions = {
   interval: number;
 };
 
-const api = new Api();
+const api = new Api({ tokenSource });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function executeEvent(runId: number, event: Model<any, any>) {

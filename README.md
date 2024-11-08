@@ -42,7 +42,7 @@ To configure your database, edit `./lib/db/index.ts`.
 
 ## Soundtrack API configuration
 
-In order to make requests to the Soundtrack API you will need to provide the app with an API token. The API will only let you see and take actions on the accounts and zones that you have configured.
+In order to make requests to the Soundtrack API you will need to provide the app with an [API token](https://api.soundtrackyourbrand.com/v2/docs#requirements), or use [User authentication](https://api.soundtrackyourbrand.com/v2/docs#authorizing-as-a-user). The API will only let you see and take actions on the accounts and zones that you have access to as an API client or Soundtrack user.
 
 The `.env.sample` file contains the required fields to make requests to the Soundtrack API.
 
@@ -61,7 +61,7 @@ cp .env.sample .env
 | `SYNC_DB`              | -                                              | When set to anything truthy will sync all database tables. **Note: All your data will be deleted**.      |
 | `LOG_LEVEL`            | `info` when `NODE_ENV=production` else `debug` | The log level passed to `pino({ level: logLevel })`.                                                     |
 | `SOUNDTRACK_API_URL`   | -                                              | The url of the Soundtrack API.                                                                           |
-| `SOUNDTRACK_API_TOKEN` | -                                              | The Soundtrack API token, used in all requests towards the Soundtrack API.                               |
+| `SOUNDTRACK_API_TOKEN` | -                                              | The Soundtrack API token, used in all requests towards the Soundtrack API when provided.                 |
 | `REQUEST_LOG`          | -                                              | when set the anything truthy will enable http request logs.                                              |
 | `WORKER_INTERVAL`      | `60`                                           | The worker check interval in seconds.                                                                    |
 

@@ -356,8 +356,13 @@ const cache = process.env["DB_CACHE"]
 const soundtrackApi = new Api({ cache, tokenSource });
 
 router.get("/auth/mode", async (req, res) => {
-  const user = await User.findByPk(0);
-  res.json({ mode: soundtrackApi.mode, loggedIn: !!user });
+  const mode = soundtrackApi.mode;
+  if (mode === "user") {
+    const user = await User.findByPk(0);
+    res.json({ mode, loggedIn: !!user });
+  } else {
+    res.json({ mode, loggedIn: false });
+  }
 });
 
 router.post("/auth/login", async (req, res) => {

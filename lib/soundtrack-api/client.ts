@@ -112,7 +112,7 @@ async function request<T, A>(
   const body = JSON.stringify({ query: document, variables });
   logger.trace("GraphQL request body: " + body);
 
-  const headers: HeadersInit = {
+  const headers: Record<string, string> = {
     "Content-Type": "application/json",
     "User-Agent": "scheduler-example-app/0.0.0",
   };

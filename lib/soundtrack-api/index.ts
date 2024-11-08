@@ -1,4 +1,5 @@
 import { runMutation, RunOptions, runQuery } from "./client.js";
+import { Semaphore } from "@shopify/semaphore";
 import {
   Account,
   AccountLibrary,
@@ -33,11 +34,13 @@ function deserialize<T>(value: string | undefined): T | undefined {
 
 export class Api {
   cache: Cache | undefined;
+  tokenSemaphore: Semaphore;
   tokenSource: TokenSource | undefined;
   mode: ApiMode;
 
   constructor(opts?: ApiOptions) {
     this.cache = opts?.cache;
+    this.tokenSemaphore = new Semaphore(1);
     this.tokenSource = opts?.tokenSource;
     this.mode = process.env.SOUNDTRACK_API_TOKEN ? "token" : "user";
 
@@ -54,17 +57,22 @@ export class Api {
       throw new Error("Token source is required in user mode");
     }
 
-    const token = await this.tokenSource.getToken();
-    if (token) {
-      return token;
+    const t = await this.tokenSemaphore.acquire();
+    try {
+      const token = await this.tokenSource.getToken();
+      if (token) {
+        return token;
+      }
+      const refreshToken = await this.tokenSource.getRefreshToken();
+      if (!refreshToken) {
+        return null;
+      }
+      const loginResponse = await this.refreshAccessToken(refreshToken);
+      await this.tokenSource.updateToken(loginResponse);
+      return loginResponse.token;
+    } finally {
+      t.release();
     }
-    const refreshToken = await this.tokenSource.getRefreshToken();
-    if (!refreshToken) {
-      return null;
-    }
-    const loginResponse = await this.refreshAccessToken(refreshToken);
-    await this.tokenSource.updateToken(loginResponse);
-    return loginResponse.token;
   }
 
   private async runOptions(options: RunOptions = {}): Promise<RunOptions> {

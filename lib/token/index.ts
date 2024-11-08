@@ -1,22 +1,13 @@
-import { Semaphore } from "@shopify/semaphore";
 import { TokenSource } from "lib/soundtrack-api/index.js";
 import { LoginResponse } from "lib/soundtrack-api/types.js";
 import { getLogger } from "lib/logger/index.js";
 import { User } from "lib/db/index.js";
 
 const logger = getLogger("lib/token");
-const semaphore = new Semaphore(1);
 const oneMinute = 60 * 1000;
 
 class Source {
-  semaphore: Semaphore;
-
-  constructor() {
-    this.semaphore = new Semaphore(1);
-  }
-
   async getToken(): Promise<string | null> {
-    const token = await semaphore.acquire();
     try {
       const user = await User.findByPk(0);
       if (!user) return null;
@@ -34,13 +25,10 @@ class Source {
     } catch (e) {
       logger.error("Failed to get token", e);
       throw e;
-    } finally {
-      token.release();
     }
   }
 
   async getRefreshToken() {
-    const token = await semaphore.acquire();
     try {
       const user = await User.findByPk(0);
       if (!user) return null;
@@ -49,8 +37,6 @@ class Source {
     } catch (e) {
       logger.error("Failed to get refresh token", e);
       throw e;
-    } finally {
-      token.release();
     }
   }
 

@@ -6,9 +6,17 @@ import { getLogger } from "../logger/index.js";
 const logger = getLogger("lib/soundtrack-api/client");
 const semaphore = new Semaphore(3);
 
+type GraphQLErrorPathSegment = string | number;
+type GraphQLErrorType = {
+  message: string;
+  path: GraphQLErrorPathSegment[] | null | undefined;
+  extensions: { code: string } | null | undefined;
+};
+type ErrorType = GraphQLErrorType;
+
 type QueryResponse<T> = {
   data: T;
-  errors?: unknown[];
+  errors?: ErrorType[];
 };
 
 type TokenType = "Bearer" | "Basic";
@@ -140,12 +148,16 @@ async function request<T, A>(
   const { data, errors } = (await res.json()) as QueryResponse<T>;
 
   if (errors && opts.errorPolicy !== "all") {
-    errors.forEach((error, i) => {
-      const msg = `(${i + 1}/${errors.length}) ${inspect(error)}`;
-      logger.error(`GraphQL request returned error: ${msg}`);
-    });
+    logGraphQLErrors(errors);
     throw new Error("GraphQL request retured errors");
   }
 
   return { data, errors };
+}
+
+export function logGraphQLErrors(errors: GraphQLErrorType[]) {
+  errors.forEach((error, i) => {
+    const msg = `(${i + 1}/${errors.length}) ${inspect(error)}`;
+    logger.error(`GraphQL request returned error: ${msg}`);
+  });
 }

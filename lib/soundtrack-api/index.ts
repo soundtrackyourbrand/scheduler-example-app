@@ -1,4 +1,9 @@
-import { runMutation, RunOptions, runQuery } from "./client.js";
+import {
+  logGraphQLErrors,
+  runMutation,
+  RunOptions,
+  runQuery,
+} from "./client.js";
 import { Semaphore } from "@shopify/semaphore";
 import {
   Account,
@@ -185,8 +190,21 @@ export class Api {
     const res = await runQuery<AccountZonesQuery, AccountZonesQueryArgs>(
       accountZonesQuery,
       { id: accountId, cursor },
-      await this.runOptions(),
+      await this.runOptions({ errorPolicy: "all" }),
     );
+    if (res.errors && res.errors.length > 0) {
+      logGraphQLErrors(res.errors);
+      const onlyMissingLocationErrors = res.errors.every((error) => {
+        const code = error.extensions?.code;
+        const lastPath = error.path?.[error.path.length - 1];
+        return code === "NOT_FOUND" && lastPath === "location";
+      });
+      if (onlyMissingLocationErrors) {
+        logger.warn("Request returned zones without locations");
+      } else {
+        throw new Error("GraphQL request returned errors");
+      }
+    }
     const zoneFn = toZoneFn(accountId);
     const zones: Zone[] = acc.concat(
       res.data.account.soundZones.edges.map(({ node }) => zoneFn(node)),

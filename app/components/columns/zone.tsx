@@ -57,7 +57,7 @@ export const columns: ColumnDef<ZoneRow>[] = [
   {
     id: "location",
     header: "Location",
-    accessorFn: ({ zone }) => zone?.location.name,
+    accessorFn: ({ zone }) => zone?.location?.name,
     meta: {
       filter: "select",
     },

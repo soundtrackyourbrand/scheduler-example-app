@@ -44,3 +44,6 @@ jobs:
 
       - name: Build Server
         run: pnpm build:server
+
+      - name: Typecheck
+        run: pnpm typecheck

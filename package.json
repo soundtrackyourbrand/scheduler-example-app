@@ -8,6 +8,7 @@
     "build:remix": "remix vite:build",
     "build:server": "tsc --p tsconfig.server.json",
     "build:clean": "rimraf build/* build-server/*",
+    "build:all": "pnpm run build:clean && pnpm run build:remix && pnpm run build:server",
     "dev": "remix dev --manual -c \"tsx ./server.ts\"",
     "start": "node ./build-server/server.js",
     "test": "echo \"Error: no test specified\" && exit 1",

@@ -63,7 +63,7 @@ export type Account = {
 export type Zone = {
   id: string;
   name: string;
-  location: Location;
+  location: Location | null;
   account: { id: string };
 };
 

@@ -11,14 +11,14 @@ export type Location = {
 export type AccountZone = {
   id: string;
   name: string;
-  location: Location;
+  location: Location | null;
 };
 
 export type Zone = {
   id: string;
   name: string;
   account: { id: string };
-  location: Location;
+  location: Location | null;
 };
 
 export type AccountLibrary = {

@@ -82,7 +82,7 @@ export const columns: ColumnDef<EventActionRow>[] = [
   {
     id: "location",
     header: "Location",
-    accessorFn: ({ zone }) => zone?.location?.name,
+    accessorFn: ({ zone }) => zone?.location.name,
   },
   {
     id: "account",

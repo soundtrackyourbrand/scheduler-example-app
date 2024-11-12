@@ -17,7 +17,7 @@ import { Model } from "sequelize";
 import { InMemoryCache } from "../lib/cache/index.js";
 import { SequelizeCache } from "../lib/db/cache.js";
 import { getLogger } from "../lib/logger/index.js";
-import tokenSource from "lib/token/index.js";
+import tokenSource from "../lib/token/index.js";
 
 const logger = getLogger("api/index");
 

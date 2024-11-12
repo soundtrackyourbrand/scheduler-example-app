@@ -1,7 +1,7 @@
-import { TokenSource } from "lib/soundtrack-api/index.js";
-import { LoginResponse } from "lib/soundtrack-api/types.js";
-import { getLogger } from "lib/logger/index.js";
-import { User } from "lib/db/index.js";
+import { TokenSource } from "../soundtrack-api/index.js";
+import { LoginResponse } from "../soundtrack-api/types.js";
+import { getLogger } from "../logger/index.js";
+import { User } from "../db/index.js";
 
 const logger = getLogger("lib/token");
 const oneMinute = 60 * 1000;

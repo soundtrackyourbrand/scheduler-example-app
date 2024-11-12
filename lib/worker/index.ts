@@ -10,7 +10,7 @@ import {
 } from "../db/index.js";
 import { Api } from "../soundtrack-api/index.js";
 import { getLogger } from "../logger/index.js";
-import tokenSource from "lib/token/index.js";
+import tokenSource from "../token/index.js";
 
 const logger = getLogger("lib/worker/index");
 

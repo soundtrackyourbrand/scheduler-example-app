@@ -271,7 +271,7 @@ export class Api {
 
     const library = await this.getLibraryPage(
       accountId,
-      { playlists: null, schedules: null },
+      { cursor: null },
       { playlists: [], schedules: [] },
     );
 
@@ -288,45 +288,44 @@ export class Api {
       libraryQuery,
       {
         accountId,
-        playlists: opts.playlists !== false,
-        playlistCursor: libraryOptToCursor(opts.playlists),
-        schedules: opts.schedules !== false,
-        scheduleCursor: libraryOptToCursor(opts.schedules),
+        cursor: libraryOptToCursor(opts.cursor),
       },
       await this.runOptions(),
     );
 
-    const musicLibrary = res.data.account.musicLibrary;
+    const library = res.data.account.library;
     const playlists: Assignable[] =
-      musicLibrary.playlists?.edges.map(toAssignableNode) ?? [];
+      library.items?.edges
+        .filter((edge) => edge.node.__typename === "Playlist")
+        .map((node) => toAssignable(node.node)) ?? [];
     const schedules: Assignable[] =
-      musicLibrary.schedules?.edges.map(toAssignableNode) ?? [];
+      library.items?.edges
+        .filter((edge) => edge.node.__typename === "Schedule")
+        .map((node) => toAssignable(node.node)) ?? [];
 
     const nextOpts: LibraryPageOpts = {
-      playlists: libraryOptFromPageInfo(musicLibrary.playlists?.pageInfo),
-      schedules: libraryOptFromPageInfo(musicLibrary.schedules?.pageInfo),
+      cursor: libraryOptFromPageInfo(library.items?.pageInfo),
     };
 
-    const library: AccountLibrary = {
+    const next: AccountLibrary = {
       playlists: acc.playlists.concat(playlists),
       schedules: acc.schedules.concat(schedules),
     };
 
     if (libraryPageOptsIsEmpty(nextOpts)) {
-      return library;
+      return next;
     }
 
-    return this.getLibraryPage(accountId, nextOpts, library);
+    return this.getLibraryPage(accountId, nextOpts, next);
   }
 }
 
 type LibraryPageOpts = {
-  playlists: boolean | string | null;
-  schedules: boolean | string | null;
+  cursor: boolean | string | null;
 };
 
 function libraryPageOptsIsEmpty(opts: LibraryPageOpts): boolean {
-  return opts.playlists === false && opts.schedules === false;
+  return opts.cursor === false;
 }
 
 function libraryOptToCursor(opt: boolean | string | null): string | null {
@@ -347,10 +346,6 @@ function toZoneFn(accountId: string) {
   return function toZone(zone: AccountZone): Zone {
     return { ...zone, account: { id: accountId } };
   };
-}
-
-function toAssignableNode(node: MusicLibraryNode): Assignable {
-  return toAssignable(node.node);
 }
 
 function toAssignable(item: LibraryItem): Assignable {
@@ -552,11 +547,7 @@ type MusicLibraryNode = {
 };
 
 type MusicLibrary = {
-  playlists?: {
-    pageInfo: PageInfo;
-    edges: MusicLibraryNode[];
-  };
-  schedules?: {
+  items?: {
     pageInfo: PageInfo;
     edges: MusicLibraryNode[];
   };
@@ -592,16 +583,13 @@ fragment ScheduleFragment on Schedule {
 
 type LibraryQuery = {
   account: {
-    musicLibrary: MusicLibrary;
+    library: MusicLibrary;
   };
 };
 
 type LibraryQueryArgs = {
   accountId: string;
-  playlistCursor: string | null;
-  playlists: boolean;
-  scheduleCursor: string | null;
-  schedules: boolean;
+  cursor: string | null;
 };
 
 const libraryQuery = `
@@ -610,32 +598,23 @@ ${playlistFragment}
 ${scheduleFragment}
 query Scheduler_Library(
   $accountId: ID!
-  $playlistCursor: String
-  $playlists: Boolean!
-  $scheduleCursor: String
-  $schedules: Boolean!
+  $cursor: String
 ) {
   account(id: $accountId) {
-    musicLibrary {
-      playlists(first:1000, after: $playlistCursor) @include(if: $playlists) {
+    library {
+      items(first:1000, after: $cursor, query: { kinds: [PLAYLIST, SCHEDULE] }) {
         pageInfo {
           hasNextPage
           endCursor
         }
         edges {
           node {
-            ...PlaylistFragment
-          }
-        }
-      }
-      schedules(first:1000, after: $scheduleCursor) @include(if: $schedules) {
-        pageInfo {
-          hasNextPage
-          endCursor
-        }
-        edges {
-          node {
-            ...ScheduleFragment
+            ... on Schedule {
+              ...ScheduleFragment
+            }
+            ... on Playlist {
+              ...PlaylistFragment
+            }
           }
         }
       }
